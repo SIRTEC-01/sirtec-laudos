@@ -1,0 +1,2489 @@
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sirtec - Controle de Laudos e Frota</title>
+    <!-- Tailwind CSS para Estilização -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue.js 3 via CDN para reatividade -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Biblioteca do Supabase para conexão em Nuvem -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Biblioteca SheetJS para leitura de planilhas Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Biblioteca ApexCharts para Gráficos de Última Geração -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        /* Oculta os templates Vue não compilados até que o app inicialize corretamente */
+        [v-cloak] {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app" v-cloak class="min-h-screen flex flex-col">
+
+    <!-- Indicador de Modo de Operação (Local ou Nuvem) no topo da tela de login -->
+    <div v-if="!logged" :class="['text-center py-1.5 text-xs font-semibold text-white', dbConfigured ? 'bg-emerald-600' : 'bg-amber-600']">
+        {{ dbConfigured ? '🟢 Conectado ao Banco de Dados Online (Sincronização Ativa)' : '🟡 Modo Local de Testes (Sem Sincronização)' }}
+    </div>
+
+    <!-- 1. TELA DE LOGIN -->
+    <div v-if="!logged" class="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-100">
+        <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md border border-slate-200">
+            <div class="text-center flex flex-col items-center">
+                <div class="mb-6">
+                    <img src="logo.png" alt="Sirtec" class="h-24 w-auto object-contain" @error="handleLogoError">
+                </div>
+                <h2 class="text-2xl font-bold text-slate-900">Controle de Documentação</h2>
+                <p class="mt-2 text-sm text-slate-600">Acesse sua conta para gerenciar a frota</p>
+            </div>
+            
+            <form @submit.prevent="handleLogin" class="mt-8 space-y-4" autocomplete="on">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-slate-700">E-mail ou Usuário</label>
+                    <input id="email" name="username" type="text" autocomplete="username" required v-model="loginForm.username" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="usuario@sirtec.com.br">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-slate-700">Senha</label>
+                    <div class="relative mt-1">
+                        <input id="password" name="password" :type="showPassword ? 'text' : 'password'" autocomplete="current-password" required v-model="loginForm.password" class="block w-full px-3 py-2 pr-10 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="••••••••">
+                        <button type="button" @click="showPassword = !showPassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5 text-slate-500 focus:outline-none">
+                            {{ showPassword ? '👁️' : '🙈' }}
+                        </button>
+                    </div>
+                </div>
+                <div class="text-xs text-red-500 font-medium" v-if="loginError">{{ loginError }}</div>
+                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Entrar no Sistema
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. SISTEMA LOGADO -->
+    <div v-else class="flex-1 flex flex-col">
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-200 px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <img src="logo.png" alt="Sirtec Logo" class="h-12 w-auto object-contain" @error="handleLogoError">
+                
+                <!-- TESTE 1: BARRA DE STATUS DINÂMICA NO CABEÇALHO (CAIXA VERMELHA) -->
+                <div v-if="currentTab === 'preventivas' && !selectedVehicle" class="hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-100 px-4 py-2 rounded-xl text-xs font-semibold animate-fade-in shrink-0">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                    </span>
+                    <span class="text-slate-600">
+                        Frota Geral: <strong class="text-blue-600">{{ compliancePercentage }}%</strong> dos caminhões estão com manutenção regularizada ({{ countPreventive.emDia }} de {{ totalPreventiveCount }} ativos).
+                    </span>
+                </div>
+            </div>
+            
+            <nav class="flex items-center gap-1">
+                <button @click="currentTab = 'laudos'; selectedVehicle = null" :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', currentTab === 'laudos' && !selectedVehicle ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50']">
+                    Laudos
+                </button>
+                <button @click="currentTab = 'veiculos'; selectedVehicle = null" :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', currentTab === 'veiculos' && !selectedVehicle ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50']">
+                    Veículos
+                </button>
+                <button @click="currentTab = 'preventivas'; selectedVehicle = null" :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', currentTab === 'preventivas' && !selectedVehicle ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50']">
+                    Preventivas (Novo)
+                </button>
+                <button v-if="currentUser && currentUser.role === 'admin_geral'" @click="currentTab = 'usuarios'; selectedVehicle = null" :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', currentTab === 'usuarios' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50']">
+                    Usuários (ADM)
+                </button>
+                <button @click="logout" class="ml-4 px-3 py-2 text-sm font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-md flex items-center gap-1 transition-colors">
+                    Sair
+                </button>
+            </nav>
+        </header>
+
+        <!-- MAIN AREA (Adaptada para comportar o painel lateral quando na aba de Preventivas) -->
+        <main :class="['flex-1 p-6 w-full mx-auto', currentTab === 'preventivas' && !selectedVehicle ? 'flex flex-col md:flex-row gap-6 max-w-[1450px]' : 'max-w-7xl']">
+
+            <!-- PAINEL LATERAL ESQUERDO: FILTROS E ANÁLISES (Padronizado sem duplicidades de caixa de texto) -->
+            <aside v-if="currentTab === 'preventivas' && !selectedVehicle" class="w-full md:w-80 bg-white p-5 rounded-lg border border-slate-200 shadow-sm flex flex-col gap-6 self-start shrink-0 animate-fade-in">
+                <div class="border-b border-slate-100 pb-3">
+                    <h3 class="font-bold text-slate-800 text-sm uppercase tracking-wide flex items-center gap-1.5">📊 Filtros & Configuração</h3>
+                    <p class="text-[11px] text-slate-400">Gerenciamento analítico da frota</p>
+                </div>
+
+                <!-- Categoria de Veículo -->
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold text-slate-500 uppercase">Categoria do Veículo</label>
+                    <div class="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded text-[11px] font-semibold text-slate-600 text-center">
+                        <button type="button" @click="selectedClassFilter = 'todos'" :class="['py-1.5 rounded transition-all', selectedClassFilter === 'todos' ? 'bg-blue-600 text-white shadow' : 'hover:bg-slate-200']">Todos</button>
+                        <button type="button" @click="selectedClassFilter = 'leves'" :class="['py-1.5 rounded transition-all', selectedClassFilter === 'leves' ? 'bg-blue-600 text-white shadow' : 'hover:bg-slate-200']">Leves</button>
+                        <button type="button" @click="selectedClassFilter = 'pesados'" :class="['py-1.5 rounded transition-all', selectedClassFilter === 'pesados' ? 'bg-blue-600 text-white shadow' : 'hover:bg-slate-200']">Pesados</button>
+                    </div>
+                </div>
+
+                <!-- Contratos cadastrados no sistema (Deduplicados Automaticamente) -->
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold text-slate-500 uppercase">Filtrar por Contrato</label>
+                    <select v-model="selectedContract" class="w-full text-xs border border-slate-300 rounded px-2.5 py-2.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 uppercase font-semibold text-slate-700">
+                        <option value="">Todos os Contratos</option>
+                        <option v-for="c in availableContracts" :key="c" :value="c">{{ c }}</option>
+                    </select>
+                </div>
+
+                <!-- Métricas Rápidas Consolidadas -->
+                <div class="pt-4 border-t border-slate-100 space-y-3">
+                    <h4 class="text-xs font-bold text-slate-600 uppercase">Métricas Consolidadas</h4>
+                    <div class="bg-slate-50 p-4 rounded-lg space-y-2.5 text-xs">
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-500 font-medium">Taxa de Adesão:</span>
+                            <span class="font-bold text-emerald-600">
+                                {{ compliancePercentage }}%
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-500 font-medium">Frota Monitorada:</span>
+                            <span class="font-bold text-slate-700">{{ veiculos.length }} un</span>
+                        </div>
+                        <div class="flex justify-between items-center border-t border-slate-200 pt-2">
+                            <span class="text-slate-500 font-medium">Uso Médio Atual:</span>
+                            <span class="font-bold text-blue-600">{{ formatNumberWithDots(averageKmRun) }} km</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botão Limpar Filtros -->
+                <button @click="clearFilters" class="w-full mt-2 py-2 text-xs font-semibold border border-slate-300 rounded hover:bg-slate-50 text-slate-600 transition-colors">
+                    Limpar Filtros
+                </button>
+            </aside>
+
+            <!-- CONTEÚDO PRINCIPAL (Tabelas, Detalhes ou Dashboard) -->
+            <div class="flex-1 min-w-0 space-y-6">
+
+                <!-- SEÇÃO DE DETALHES DO VEÍCULO -->
+                <div v-if="selectedVehicle" class="space-y-6">
+                    <!-- Top Actions Bar -->
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-4">
+                        <div class="flex items-center gap-4">
+                            <button @click="selectedVehicle = null" class="px-3 py-1.5 border border-slate-300 rounded text-xs font-semibold text-slate-600 hover:bg-slate-50 flex items-center gap-1">
+                                ← Voltar
+                            </button>
+                            <div>
+                                <h2 class="text-xl font-bold text-slate-900">{{ selectedVehicle.placa }} — {{ selectedVehicle.modelo }}</h2>
+                                <div class="text-xs text-slate-500 space-x-2 mt-0.5">
+                                    <span class="bg-slate-100 px-2 py-0.5 rounded font-semibold text-slate-600 uppercase">{{ selectedVehicle.contrato }}</span>
+                                    <span class="bg-slate-100 px-2 py-0.5 rounded font-semibold text-slate-600 uppercase">{{ selectedVehicle.base }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Paginação interna e exclusão -->
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-slate-500">{{ currentVehicleIndex + 1 }} de {{ veiculos.length }}</span>
+                            <button @click="navigateVehicle(-1)" class="px-2.5 py-1.5 border border-slate-300 rounded text-xs font-semibold text-slate-600 hover:bg-slate-50" :disabled="currentVehicleIndex === 0">Anterior</button>
+                            <button @click="navigateVehicle(1)" class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold" :disabled="currentVehicleIndex === veiculos.length - 1">Próximo ></button>
+                            <button v-if="canEdit" @click="deleteVehicle(selectedVehicle.placa)" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-semibold">Excluir Veículo</button>
+                        </div>
+                    </div>
+
+                    <!-- Painel Grid de Detalhes -->
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        
+                        <!-- COLUNA 1: INFORMAÇÕES BÁSICAS AND ESPECIFICAÇÕES -->
+                        <div class="lg:col-span-4 space-y-6">
+                            <!-- Informações Básicas -->
+                            <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200 relative">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wide">📄 Informações Básicas</h3>
+                                    <button v-if="canEdit" @click="openEditBasicModal" class="text-xs text-blue-600 hover:underline font-semibold">Editar</button>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 text-xs">
+                                    <div>
+                                        <span class="text-slate-400 block font-medium">Marca</span>
+                                        <span class="font-bold text-slate-700 block mt-0.5 uppercase">{{ selectedVehicle.marca || '—' }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block font-medium">Modelo</span>
+                                        <span class="font-bold text-slate-700 block mt-0.5">{{ selectedVehicle.modelo }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block font-medium">Ano</span>
+                                        <span class="font-bold text-slate-700 block mt-0.5">{{ selectedVehicle.ano || '—' }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block font-medium">Placa</span>
+                                        <span class="font-bold text-slate-700 block mt-0.5 uppercase">{{ selectedVehicle.placa }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block font-medium">Tipo de Veículo</span>
+                                        <span class="font-bold text-slate-700 block mt-0.5 uppercase">{{ selectedVehicle.tipo || '—' }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block font-medium">Contrato</span>
+                                        <span class="font-bold text-slate-700 block mt-0.5 uppercase">{{ selectedVehicle.contrato || '—' }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block font-medium">Base Operacional</span>
+                                        <span class="font-bold text-slate-700 block mt-0.5 uppercase">{{ selectedVehicle.base || '—' }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block font-medium">Equipe</span>
+                                        <span class="font-bold text-slate-700 block mt-0.5 uppercase">{{ selectedVehicle.equipe || '—' }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block font-medium">RENAVAM</span>
+                                        <span class="font-bold text-slate-700 block mt-0.5">{{ selectedVehicle.renavam || '—' }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block font-medium">CHASSI</span>
+                                        <span class="font-bold text-slate-700 block mt-0.5 uppercase">{{ selectedVehicle.chassi || '—' }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block font-medium">Número CRLV</span>
+                                        <span class="font-bold text-slate-700 block mt-0.5">{{ selectedVehicle.numCrlv || '—' }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block font-medium">Coordenação</span>
+                                        <span class="font-bold text-slate-700 block mt-0.5 uppercase">{{ selectedVehicle.coordenacao || '—' }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block font-medium">Supervisão</span>
+                                        <span class="font-bold text-slate-700 block mt-0.5 uppercase">{{ selectedVehicle.supervisao || '—' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Especificações -->
+                            <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wide">⚙ Especificações</h3>
+                                    <button v-if="canEdit" @click="openEditSpecModal" class="text-xs text-blue-600 hover:underline font-semibold">Editar</button>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 text-xs">
+                                    <div>
+                                        <span class="text-slate-400 block font-medium">Combustível</span>
+                                        <span class="font-bold text-slate-700 block mt-0.5 uppercase">{{ selectedVehicle.combustivel || 'DIESEL' }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block font-medium">Valor Locação</span>
+                                        <span class="font-bold text-slate-700 block mt-0.5">{{ selectedVehicle.valorLocacao ? 'R$ ' + selectedVehicle.valorLocacao : '—' }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block font-medium">Rastreador</span>
+                                        <span class="font-bold text-slate-700 block mt-0.5 uppercase">{{ selectedVehicle.rastreador || 'Não' }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block font-medium">Nº Rastreador</span>
+                                        <span class="font-bold text-slate-700 block mt-0.5">{{ selectedVehicle.numRastreador || '—' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- COLUNA 2: PREVENTIVA E ANEXOS -->
+                        <div class="lg:col-span-4 space-y-6">
+                            <!-- Manutenção Preventiva -->
+                            <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wide">🛠 Manutenção Preventiva</h3>
+                                    <span :class="['px-2 py-0.5 font-bold rounded-full text-[10px] uppercase', getPreventiveColorClass(selectedVehicle)]">
+                                        {{ getPreventiveStatusLabel(selectedVehicle) }}
+                                    </span>
+                                </div>
+                                
+                                <div class="grid grid-cols-2 gap-4 mb-4 border-b border-slate-100 pb-4 text-xs">
+                                    <div>
+                                        <span class="text-slate-400 block font-medium uppercase">Quilometragem Atual</span>
+                                        <span class="text-2xl font-black text-blue-600 mt-1 block">{{ formatNumberWithDots(selectedVehicle.kmAtual) || 0 }} <span class="text-xs font-normal text-slate-400">km</span></span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block font-medium uppercase">Faltam</span>
+                                        <span class="text-2xl font-black text-blue-600 mt-1 block">{{ getKmFaltanteLabel(selectedVehicle) }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4 text-xs">
+                                    <div>
+                                        <span class="text-slate-400 block font-medium">Última Preventiva</span>
+                                        <span class="font-bold text-slate-700 block mt-0.5">{{ selectedVehicle.ultimaPreventivaKm ? formatNumberWithDots(selectedVehicle.ultimaPreventivaKm) + ' km' : 'Não Definido' }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block font-medium">Próxima Preventiva</span>
+                                        <span class="font-bold text-slate-700 block mt-0.5">{{ formatNumberWithDots(getProximaPreventivaKm(selectedVehicle)) }} km</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Fotos e Documentos Diversos -->
+                            <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200 space-y-4">
+                                <!-- Fotos -->
+                                <div>
+                                    <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wide mb-2 flex justify-between items-center">
+                                        <span>📸 Fotos do Veículo</span>
+                                        <button v-if="canEdit" class="text-xs text-blue-600 font-bold hover:underline" @click="triggerInput('photo-upload')">+ Adicionar Foto</button>
+                                    </h4>
+                                    <input type="file" id="photo-upload" class="hidden" accept="image/*" @change="handleVehiclePhoto">
+                                    
+                                    <div v-if="!selectedVehicle.fotos || selectedVehicle.fotos.length === 0" class="bg-slate-50 border border-dashed border-slate-200 rounded p-4 text-center text-xs text-slate-400 italic">
+                                        Nenhuma foto cadastrada
+                                    </div>
+                                    <div v-else class="grid grid-cols-3 gap-2">
+                                        <div v-for="(photo, index) in selectedVehicle.fotos" :key="index" class="relative group border border-slate-200 rounded overflow-hidden h-20 bg-slate-100">
+                                            <img :src="photo.data" class="object-cover w-full h-full">
+                                            <button v-if="canEdit" @click="removeVehiclePhoto(index)" class="absolute top-1 right-1 bg-red-600 text-white rounded-full h-4 w-4 text-[10px] flex items-center justify-center opacity-75 hover:opacity-100">&times;</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Termo de Responsabilidade -->
+                                <div class="pt-2 border-t border-slate-100">
+                                    <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wide mb-2 flex justify-between items-center">
+                                        <span>📄 Termo de Responsabilidade</span>
+                                        <button v-if="canEdit" class="text-xs text-blue-600 font-bold hover:underline" @click="triggerInput('termo-upload')">Anexar</button>
+                                    </h4>
+                                    <input type="file" id="termo-upload" class="hidden" accept=".pdf,image/*" @change="handleVehicleTermo">
+                                    
+                                    <div v-if="!selectedVehicle.termo" class="bg-slate-50 border border-dashed border-slate-200 rounded p-4 text-center text-xs text-slate-400 italic">
+                                        Nenhum termo anexado
+                                    </div>
+                                    <div v-else class="p-3 bg-slate-50 border border-slate-200 rounded flex justify-between items-center text-xs text-slate-700 font-medium">
+                                        <div class="truncate max-w-[180px]">📎 {{ selectedVehicle.termo.name }}</div>
+                                        <div class="flex gap-2">
+                                            <button @click="downloadTermo" class="text-blue-600 font-bold hover:underline">Baixar</button>
+                                            <button v-if="canEdit" @click="removeTermo" class="text-red-500 font-bold hover:underline">Remover</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- COLUNA 3: DOCUMENTOS -->
+                        <div class="lg:col-span-4 space-y-4">
+                            <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200 space-y-4">
+                                <div class="flex justify-between items-center">
+                                    <h3 class="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wide">📂 Documentos</h3>
+                                    <button v-if="canEdit" @click="openAddDocumentModal" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-semibold">
+                                        + Adicionar
+                                    </button>
+                                </div>
+
+                                <!-- Lista de Documentos Filtrados por Placa -->
+                                <div class="space-y-3">
+                                    <div v-for="doc in getVehicleDocuments(selectedVehicle.placa)" :key="doc.id" class="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-3 relative hover:shadow-sm transition-shadow">
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <h4 class="font-bold text-slate-900 text-sm">{{ doc.tipoLaudo }}</h4>
+                                                <span class="text-[10px] text-slate-500 uppercase font-medium">{{ doc.observacao || 'Sem observação' }}</span>
+                                            </div>
+                                            <button v-if="canEdit" @click="deleteLaudo(doc.id)" class="text-slate-400 hover:text-red-500 font-light text-base" title="Excluir Documento">&times;</button>
+                                        </div>
+
+                                        <div class="flex items-center gap-2 text-xs flex-wrap">
+                                            <span :class="getStatusBadgeClass(doc)">
+                                                {{ getStatusLabel(doc) }}
+                                            </span>
+                                            <span class="text-slate-500 font-medium" v-if="doc.validade">{{ formatDate(doc.validade) }}</span>
+                                        </div>
+
+                                        <!-- Resultado do Laudo -->
+                                        <div v-if="doc.resultado" class="text-xs">
+                                            <span :class="getResultadoBadgeClass(doc.resultado)">
+                                                {{ doc.resultado }}
+                                            </span>
+                                        </div>
+
+                                        <!-- Ações do Documento -->
+                                        <div class="flex gap-4 pt-2 border-t border-slate-200 text-xs font-semibold text-slate-500">
+                                            <button class="hover:text-blue-600" @click="viewDocument(doc)">👁 Visualizar</button>
+                                            <button class="hover:text-blue-600" @click="downloadDocument(doc)">📥 Baixar</button>
+                                            <button v-if="canEdit" class="hover:text-blue-600" @click="editDocument(doc)">🔄 Atualizar</button>
+                                        </div>
+                                    </div>
+
+                                    <div v-if="getVehicleDocuments(selectedVehicle.placa).length === 0" class="text-center py-8 text-xs text-slate-400 italic">
+                                        Nenhum documento ou laudo vinculado a este veículo.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- TABS GENÉRICOS -->
+                <div v-else>
+
+                    <!-- TAB: LAUDOS -->
+                    <div v-if="currentTab === 'laudos'" class="space-y-6">
+                        <div>
+                            <h1 class="text-2xl font-bold text-slate-900">Laudos</h1>
+                            <p class="text-sm text-slate-500">Sistema Modular de Laudos — Sirtec Sistemas Elétricos</p>
+                        </div>
+
+                        <!-- CARDS DE RESUMO -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div @click="setCardFilter('em-dia')" :class="['cursor-pointer bg-white p-5 rounded-lg border-t-4 shadow-sm hover:shadow-md transition-all text-center', cardFilter === 'em-dia' ? 'border-emerald-500 ring-2 ring-emerald-100' : 'border-emerald-500']">
+                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Laudos em Dia</span>
+                                <div class="text-3xl font-bold text-emerald-600 mt-2">{{ countStatus.emDia }}</div>
+                                <div class="mt-2 text-emerald-500 text-sm">✓</div>
+                            </div>
+                            <div @click="setCardFilter('vencido')" :class="['cursor-pointer bg-white p-5 rounded-lg border-t-4 shadow-sm hover:shadow-md transition-all text-center', cardFilter === 'vencido' ? 'border-red-500 ring-2 ring-red-100' : 'border-red-500']">
+                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Laudos Vencidos</span>
+                                <div class="text-3xl font-bold text-red-600 mt-2">{{ countStatus.vencidos }}</div>
+                                <div class="mt-2 text-red-500 text-sm">⚠</div>
+                            </div>
+                            <div @click="setCardFilter('proximo')" :class="['cursor-pointer bg-white p-5 rounded-lg border-t-4 shadow-sm hover:shadow-md transition-all text-center', cardFilter === 'proximo' ? 'border-amber-500 ring-2 ring-amber-100' : 'border-amber-500']">
+                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Próximos do Vencimento</span>
+                                <div class="text-3xl font-bold text-amber-500 mt-2">{{ countStatus.proximos }}</div>
+                                <div class="mt-2 text-amber-500 text-sm">🕒</div>
+                            </div>
+                            <div @click="setCardFilter('faltante')" :class="['cursor-pointer bg-white p-5 rounded-lg border-t-4 shadow-sm hover:shadow-md transition-all text-center', cardFilter === 'faltante' ? 'border-slate-400 ring-2 ring-slate-100' : 'border-slate-400']">
+                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Laudos Faltantes</span>
+                                <div class="text-3xl font-bold text-slate-600 mt-2">{{ countStatus.faltantes }}</div>
+                                <div class="mt-2 text-slate-400 text-sm">⚠</div>
+                            </div>
+                        </div>
+
+                        <!-- Busca e Filtros -->
+                        <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex flex-col md:flex-row gap-3 items-center justify-between">
+                            <input v-model="searchQueryLaudo" type="text" placeholder="Buscar por placa, modelo, localização ou tipo..." class="w-full md:max-w-md pl-3 pr-10 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            <div class="flex flex-wrap gap-2 justify-end">
+                                <button @click="clearFilters" class="px-3 py-1.5 text-xs font-medium border border-slate-300 rounded hover:bg-slate-50 text-slate-600">Limpar Filtros</button>
+                                <select v-model="selectedContract" class="text-xs border border-slate-300 rounded px-2 py-1.5 uppercase font-bold text-slate-700">
+                                    <option value="">Todos os Contratos</option>
+                                    <option v-for="c in availableContracts" :key="c" :value="c">{{ c }}</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Lista de Laudos Geral -->
+                        <div class="bg-white rounded-lg shadow overflow-hidden border border-slate-200">
+                            <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
+                                <thead class="bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
+                                    <tr>
+                                        <th class="px-6 py-3">Veículo</th>
+                                        <th class="px-6 py-3">Contrato</th>
+                                        <th class="px-6 py-3">Laudo</th>
+                                        <th class="px-6 py-3">Validade</th>
+                                        <th class="px-6 py-3">Status</th>
+                                        <th class="px-6 py-3">Resultado</th>
+                                        <th class="px-6 py-3 text-right" v-if="canEdit">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    <tr v-for="laudo in filteredLaudos" :key="laudo.id" class="hover:bg-slate-50 cursor-pointer" @click="selectVehicleByPlate(laudo.placa)">
+                                        <td class="px-6 py-4">
+                                            <div class="font-bold text-slate-900">{{ laudo.placa }}</div>
+                                            <div class="text-xs text-slate-500">{{ laudo.modelo }}</div>
+                                        </td>
+                                        <td class="px-6 py-4 text-slate-600 uppercase font-medium">{{ laudo.contrato }}</td>
+                                        <td class="px-6 py-4">{{ laudo.tipoLaudo }}</td>
+                                        <td class="px-6 py-4">{{ laudo.validade ? formatDate(laudo.validade) : '—' }}</td>
+                                        <td class="px-6 py-4">
+                                            <span :class="getStatusBadgeClass(laudo)">
+                                                {{ getStatusLabel(laudo) }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span v-if="laudo.resultado" :class="getResultadoBadgeClass(laudo.resultado)">
+                                                {{ laudo.resultado }}
+                                            </span>
+                                            <span v-else class="text-slate-400">—</span>
+                                        </td>
+                                        <td class="px-6 py-4 text-right" @click.stop v-if="canEdit">
+                                            <button @click="deleteLaudo(laudo.id)" class="text-xs text-red-500 hover:text-red-700">Excluir</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- TAB: VEÍCULOS -->
+                    <div v-if="currentTab === 'veiculos'" class="space-y-6">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <div>
+                                <h1 class="text-2xl font-bold text-slate-900">Veículos</h1>
+                                <p class="text-sm text-slate-500">{{ filteredVeiculos.length }} veículos cadastrados</p>
+                            </div>
+
+                            <!-- Sub-Tabs de Categoria de Veículo (Pesados / Leves) -->
+                            <div class="flex border border-slate-200 bg-white rounded-md p-1 shadow-sm text-xs font-semibold text-slate-600">
+                                <button @click="selectedClassFilter = 'todos'" :class="['px-3 py-1.5 rounded transition-all', selectedClassFilter === 'todos' ? 'bg-blue-600 text-white shadow' : 'hover:bg-slate-50']">Todos</button>
+                                <button @click="selectedClassFilter = 'leves'" :class="['px-3 py-1.5 rounded transition-all', selectedClassFilter === 'leves' ? 'bg-blue-600 text-white shadow' : 'hover:bg-slate-50']">Veículos Leves</button>
+                                <button @click="selectedClassFilter = 'pesados'" :class="['px-3 py-1.5 rounded transition-all', selectedClassFilter === 'pesados' ? 'bg-blue-600 text-white shadow' : 'hover:bg-slate-50']">Veículos Pesados</button>
+                            </div>
+
+                            <button v-if="canEdit" @click="showAddVehicleModal = true" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-semibold">+ Adicionar Veículo</button>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+                            <input v-model="searchQueryVehicle" type="text" placeholder="Buscar por placa, modelo, marca, contrato, equipe..." class="w-full max-w-md px-3 py-2 text-sm border border-slate-300 rounded focus:outline-none">
+                        </div>
+
+                        <div class="bg-white rounded-lg shadow border border-slate-200 overflow-x-auto">
+                            <table class="min-w-full divide-y divide-slate-200 text-left text-sm whitespace-nowrap">
+                                <thead class="bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
+                                    <tr>
+                                        <th class="px-6 py-3">Veículo</th>
+                                        <th class="px-6 py-3">Marca</th>
+                                        <th class="px-6 py-3">Ano</th>
+                                        <th class="px-6 py-3">Tipo</th>
+                                        <th class="px-6 py-3">Contrato</th>
+                                        <th class="px-6 py-3">Base</th>
+                                        <th class="px-6 py-3">Equipe</th>
+                                        <th class="px-6 py-3">Coordenação</th>
+                                        <th class="px-6 py-3">Supervisão</th>
+                                        <th class="px-6 py-3 text-right">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    <tr v-for="v in filteredVeiculos" :key="v.placa" class="hover:bg-slate-50 cursor-pointer" @click="selectedVehicle = v">
+                                        <td class="px-6 py-4">
+                                            <div class="font-bold text-slate-900">{{ v.placa }}</div>
+                                            <div class="text-xs text-slate-500">{{ v.modelo }}</div>
+                                        </td>
+                                        <td class="px-6 py-4 uppercase text-xs">{{ v.marca }}</td>
+                                        <td class="px-6 py-4 text-xs">{{ v.ano }}</td>
+                                        <td class="px-6 py-4 uppercase text-xs">{{ v.tipo || '—' }}</td>
+                                        <td class="px-6 py-4 uppercase font-medium text-xs">{{ v.contrato || '—' }}</td>
+                                        <td class="px-6 py-4 uppercase text-xs">{{ v.base || '—' }}</td>
+                                        <td class="px-6 py-4 uppercase text-xs font-semibold">{{ v.equipe || '—' }}</td>
+                                        <td class="px-6 py-4 uppercase text-xs">{{ v.coordenacao || '—' }}</td>
+                                        <td class="px-6 py-4 uppercase text-xs">{{ v.supervisao || '—' }}</td>
+                                        <td class="px-6 py-4 text-right space-x-3 text-xs" @click.stop>
+                                            <button @click="selectedVehicle = v" class="text-xs text-blue-600 font-semibold hover:underline">Ver Detalhes ></button>
+                                            <button v-if="canEdit" @click="deleteVehicle(v.placa)" class="text-xs text-red-500 hover:text-red-700 font-medium">Excluir</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- TAB: PREVENTIVAS (DASHBOARD CORPORATIVO DE MANUTENÇÃO PREVENTIVA) -->
+                    <div v-if="currentTab === 'preventivas'" class="space-y-6">
+                        <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+                            <div>
+                                <h1 class="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                                    <span class="text-blue-600">🛡️</span> Manutenção Preventiva
+                                </h1>
+                                <p class="text-sm text-slate-500 font-medium">Gestão integrada de frota, inteligência analítica e controle preditivo</p>
+                            </div>
+                            
+                            <!-- Input do Excel protegido -->
+                            <div v-if="canEdit" class="flex items-center gap-3 bg-white p-3 rounded-lg border border-slate-200 shadow-sm text-xs">
+                                <div class="font-semibold text-slate-600">Importar Abastecimento:</div>
+                                <input type="file" accept=".xlsx, .xls, .csv" @change="handleExcelImport" class="text-slate-500 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            </div>
+                        </div>
+
+                        <!-- CARDS DE RESUMO DE PREVENTIVAS (4 CARDS ESTRUTURADOS E INTELIGENTES) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <!-- Card 1: Compliance Rate com Anel Circular Dinâmico -->
+                            <div @click="setPreventiveCardFilter('em-dia')" :class="['cursor-pointer bg-white p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-emerald-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 duration-300 flex items-center justify-between', preventiveCardFilter === 'em-dia' ? 'ring-4 ring-emerald-100' : '']">
+                                <div>
+                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Adesão da Frota</span>
+                                    <div class="text-3xl font-black text-slate-800 mt-2">{{ compliancePercentage }}%</div>
+                                    <p class="text-[10px] text-emerald-600 mt-2 font-bold">{{ countPreventive.emDia }} de {{ totalPreventiveCount }} em dia</p>
+                                </div>
+                                <!-- Anel de Progresso Circular SVG -->
+                                <div class="relative h-14 w-14 shrink-0 flex items-center justify-center">
+                                    <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                                        <path class="text-slate-100" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        <path class="text-emerald-500 transition-all duration-500" stroke-dasharray="100" :stroke-dasharray="compliancePercentage + ', 100'" stroke-width="3" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                    </svg>
+                                    <span class="absolute text-[10px] font-black text-slate-600">{{ compliancePercentage }}%</span>
+                                </div>
+                            </div>
+
+                            <!-- Card 2: Atenção -->
+                            <div @click="setPreventiveCardFilter('atencao')" :class="['cursor-pointer bg-white p-6 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-amber-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 duration-300', preventiveCardFilter === 'atencao' ? 'ring-4 ring-amber-100' : '']">
+                                <div class="flex justify-between items-start">
+                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Atenção Crítica</span>
+                                    <span class="text-amber-500 p-1 bg-amber-50 rounded-lg">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                    </span>
+                                </div>
+                                <div class="text-3xl font-black text-slate-800 mt-2">{{ countPreventive.atencao }}</div>
+                                <p class="text-[10px] text-slate-400 mt-2 font-semibold">Menos de 1.000 km restantes</p>
+                            </div>
+
+                            <!-- Card 3: Atrasados -->
+                            <div @click="setPreventiveCardFilter('vencido')" :class="['cursor-pointer bg-white p-6 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-red-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 duration-300', preventiveCardFilter === 'vencido' ? 'ring-4 ring-red-100' : '']">
+                                <div class="flex justify-between items-start">
+                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Atrasados / Excedidos</span>
+                                    <span class="text-red-500 p-1 bg-red-50 rounded-lg">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    </span>
+                                </div>
+                                <div class="text-3xl font-black text-slate-800 mt-2">{{ countPreventive.atrasados }}</div>
+                                <p class="text-[10px] text-slate-400 mt-2 font-semibold">Manutenção pendente imediata</p>
+                            </div>
+
+                            <!-- Card 4: Orçamento Estimado Projetado -->
+                            <div class="bg-white p-6 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-blue-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 duration-300">
+                                <div class="flex justify-between items-start">
+                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Custo de Correção</span>
+                                    <span class="text-blue-500 p-1 bg-blue-50 rounded-lg">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    </span>
+                                </div>
+                                <div class="text-2xl font-black text-slate-800 mt-2">R$ {{ formatNumberWithDots(projectedCost) }}</div>
+                                <p class="text-[10px] text-slate-400 mt-3 font-semibold">Orçamento estimado para regularização</p>
+                            </div>
+                        </div>
+
+                        <!-- SEÇÃO DE GRÁFICOS CORPORATIVOS INTEGRADOS (ESTILO DASHBOARD BI COM TRÊS GRÁFICOS ANALÍTICOS) -->
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                            <!-- Gráfico 1: Distribuição Geral (Rosca interativa) -->
+                            <div class="lg:col-span-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-between">
+                                <h4 class="text-xs font-bold text-slate-600 uppercase mb-4 tracking-wider">📈 Distribuição Geral de Preventivas</h4>
+                                <div id="chartStatus" class="flex justify-center my-auto cursor-pointer"></div>
+                            </div>
+
+                            <!-- Gráfico 2: Situação Regional (Horizontal Grouped Bar) -->
+                            <div class="lg:col-span-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-between">
+                                <h4 class="text-xs font-bold text-slate-600 uppercase mb-4 tracking-wider">🏢 Situação por Regional</h4>
+                                <div id="chartRegional"></div>
+                            </div>
+
+                            <!-- Gráfico 3: Curva de Desgaste de Hodômetro (Spline Area para enriquecer dados) -->
+                            <div class="lg:col-span-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-between">
+                                <h4 class="text-xs font-bold text-slate-600 uppercase mb-4 tracking-wider">📊 Curva de Desgaste (KM Frota)</h4>
+                                <div id="chartDistribution"></div>
+                            </div>
+                        </div>
+
+                        <!-- TESTE 3: PAINEL DE RANKING DE REGIONAIS COM BARRAS DE PROGRESSO HORIZONTAIS -->
+                        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-4 animate-fade-in">
+                            <div class="border-b border-slate-100 pb-3 flex justify-between items-center">
+                                <div>
+                                    <h4 class="text-xs font-bold text-slate-600 uppercase tracking-wider">🏆 Ranking de Conformidade por Regional</h4>
+                                    <p class="text-[10px] text-slate-400">Classificação das regionais com melhor taxa de preventivas em dia</p>
+                                </div>
+                                <span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase">Automático</span>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <div v-for="item in regionalComplianceRanking" :key="item.contrato" class="bg-slate-50 p-4 rounded-xl space-y-2.5">
+                                    <div class="flex justify-between items-center text-xs">
+                                        <span class="font-bold text-slate-700 uppercase">{{ item.contrato }}</span>
+                                        <span class="font-black text-emerald-600">{{ item.percentage }}%</span>
+                                    </div>
+                                    <!-- Barra de Progresso Horizontal Premium -->
+                                    <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                                        <div class="bg-emerald-500 h-full rounded-full transition-all duration-500" :style="{ width: item.percentage + '%' }"></div>
+                                    </div>
+                                    <div class="flex justify-between text-[10px] text-slate-400 font-semibold uppercase">
+                                        <span>{{ item.emDia }} Em Dia</span>
+                                        <span>{{ item.total }} Total</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- central de decisões / Alertas críticos do gestor (Inclusão profissional) -->
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                            <div class="lg:col-span-8 bg-blue-50 p-5 rounded-2xl border border-blue-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                <div class="text-xs text-blue-700">
+                                    <strong>Gestão de Frota:</strong> Dispare alertas eletrônicos automáticos de preventiva ou extraia toda a tabela de dados em planilha de Excel.
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    <button @click="exportPreventiveReport" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold shadow-sm flex items-center gap-1.5">
+                                        📥 Exportar Relatório (Excel)
+                                    </button>
+                                    <button v-if="canEdit" @click="sendAlertEmails" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-bold shadow-sm flex items-center gap-1.5">
+                                        ✉️ Disparar Alertas de Preventiva
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="lg:col-span-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                                <h4 class="text-xs font-bold text-slate-600 uppercase tracking-wider border-b border-slate-100 pb-2">🚨 Status Hodômetro Zerado</h4>
+                                <div class="p-3 bg-slate-50 text-slate-700 rounded-xl flex items-center justify-between mt-2 text-xs">
+                                    <div>
+                                        <span class="font-bold">Km Zerado / Sem Dados</span>
+                                        <p class="text-[10px] text-slate-400 mt-0.5">Veículos sem leitura de hodômetro</p>
+                                    </div>
+                                    <span class="text-lg font-black">{{ countKmZerado }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tabela de Controle de Preventiva com Barra de Busca Local integrada no Cabeçalho -->
+                        <div class="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden animate-fade-in">
+                            <!-- BARRA DE BUSCA LOCAL (Marcado em Vermelho) -->
+                            <div class="bg-white px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3">
+                                <input v-model="searchQueryPreventive" type="text" placeholder="🔍 Buscar por placa, modelo ou operação..." class="w-full max-w-sm px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium text-slate-700">
+                                <div class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                                    Mostrando {{ filteredPreventivesForTable.length }} de {{ veiculos.length }} veículos
+                                </div>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-slate-100 text-left text-xs whitespace-nowrap">
+                                    <thead class="bg-slate-50 font-semibold text-slate-600 uppercase">
+                                        <tr>
+                                            <th class="px-5 py-4">Operação (Nome Reduzido)</th>
+                                            <th class="px-5 py-4">Placa</th>
+                                            <th class="px-5 py-4">Modelo</th>
+                                            <th class="px-5 py-4">KM Atual (Hodômetro)</th>
+                                            <th class="px-5 py-4 text-center">KM Restantes</th>
+                                            <th class="px-5 py-4 text-center">Status</th>
+                                            <th class="px-5 py-4">Último Abastecimento (Data)</th>
+                                            <th class="px-5 py-4">KM Última Preventiva (Manual)</th>
+                                            <th class="px-5 py-4 text-center">KM Rodados</th>
+                                            <th class="px-5 py-4">E-mail para Alerta</th>
+                                            <th class="px-5 py-4 text-right">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        <tr v-for="v in filteredPreventivesForTable" :key="v.placa" class="hover:bg-slate-50">
+                                            <td class="px-5 py-4 uppercase text-[10px] font-semibold text-slate-700">{{ v.operacao || v.contrato || '—' }}</td>
+                                            <td class="px-5 py-4 font-bold text-slate-900">{{ v.placa }}</td>
+                                            <td class="px-5 py-4 text-slate-500">{{ v.modelo }}</td>
+                                            <td class="px-5 py-4 font-semibold text-blue-600">{{ v.kmAtual ? formatNumberWithDots(v.kmAtual) + ' km' : '0 km' }}</td>
+                                            
+                                            <!-- KM Restantes formatado com Barra de Progresso Progressiva -->
+                                            <td class="px-5 py-4 text-center">
+                                                <div class="flex flex-col items-center gap-1">
+                                                    <span :class="['font-black', getKmRestanteColor(v)]">
+                                                        {{ getKmFaltanteLabel(v) }}
+                                                    </span>
+                                                    <!-- Barra de Progresso de manutenção (Preenche de acordo com o desgaste de 10.000 KM) -->
+                                                    <div v-if="v.ultimaPreventivaKm" class="w-24 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                                        <div :class="['h-full rounded-full transition-all', getPreventiveStatus(v) === 'vencido' ? 'bg-red-500 w-full' : getPreventiveStatus(v) === 'atencao' ? 'bg-amber-500' : 'bg-emerald-500']"
+                                                             :style="{ width: Math.min(100, (getKmRodados(v) / 10000) * 100) + '%' }">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            <!-- Badge Status (Com Luzes de LED Pulsantes Neon) -->
+                                            <td class="px-5 py-4 text-center">
+                                                <div class="flex items-center gap-2 justify-center">
+                                                    <span class="relative flex h-2 w-2">
+                                                        <span :class="['animate-ping absolute inline-flex h-full w-full rounded-full opacity-75', getPreventiveStatus(v) === 'vencido' ? 'bg-red-500' : getPreventiveStatus(v) === 'atencao' ? 'bg-amber-500' : 'bg-emerald-500']"></span>
+                                                        <span :class="['relative inline-flex rounded-full h-2 w-2', getPreventiveStatus(v) === 'vencido' ? 'bg-red-500' : getPreventiveStatus(v) === 'atencao' ? 'bg-amber-500' : 'bg-emerald-500']"></span>
+                                                    </span>
+                                                    <span :class="['font-semibold text-[11px] uppercase', getPreventiveStatus(v) === 'vencido' ? 'text-red-600' : getPreventiveStatus(v) === 'atencao' ? 'text-amber-600' : 'text-emerald-600']">
+                                                        {{ getPreventiveStatusLabel(v) }}
+                                                    </span>
+                                                </div>
+                                            </td>
+
+                                            <td class="px-5 py-4 text-slate-500">{{ v.dataUltimoAbastecimento || '—' }}</td>
+
+                                            <!-- Input Manual de KM da última preventiva (ADMIN/DONO) -->
+                                            <td class="px-5 py-4">
+                                                <input v-if="canEdit" type="number" v-model.number="v.ultimaPreventivaKm" @change="updateVehiclePreventive(v)" class="w-24 px-1.5 py-1 border rounded text-xs text-center font-semibold text-slate-700" placeholder="Definir KM">
+                                                <span v-else class="font-semibold text-slate-700">{{ v.ultimaPreventivaKm ? formatNumberWithDots(v.ultimaPreventivaKm) + ' km' : '—' }}</span>
+                                            </td>
+
+                                            <td class="px-5 py-4 text-center font-bold text-slate-700">{{ formatNumberWithDots(getKmRodados(v)) }} km</td>
+                                            
+                                            <!-- Campo E-mail de Alerta (ADMIN/DONO) -->
+                                            <td class="px-5 py-4">
+                                                <input v-if="canEdit" type="email" v-model="v.emailAlerta" @change="updateVehiclePreventive(v)" class="w-40 px-2 py-1 border rounded text-[10px]" placeholder="email@sirtec.com.br">
+                                                <span v-else class="text-slate-600 font-medium">{{ v.emailAlerta || '—' }}</span>
+                                            </td>
+
+                                            <td class="px-5 py-4 text-right">
+                                                <button @click="selectedVehicle = v" class="text-blue-600 hover:underline font-semibold">Ver Detalhes</button>
+                                            </td>
+                                        </tr>
+                                        <tr v-if="filteredPreventivesForTable.length === 0">
+                                            <td colspan="11" class="text-center py-8 text-slate-400 italic">Nenhum veículo corresponde aos filtros selecionados.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB: USUÁRIOS -->
+                    <div v-if="currentTab === 'usuarios' && currentUser && currentUser.role === 'admin_geral'" class="space-y-6">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h1 class="text-2xl font-bold text-slate-900">Usuários</h1>
+                                <p class="text-sm text-slate-500">Controle de acessos ao aplicativo</p>
+                            </div>
+                            <button @click="showAddUserModal = true" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded">+ Cadastrar Novo</button>
+                        </div>
+
+                        <div class="bg-white rounded-lg shadow border border-slate-200 max-w-2xl">
+                            <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
+                                <thead class="bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
+                                    <tr>
+                                        <th class="px-6 py-3">E-mail</th>
+                                        <th class="px-6 py-3">Senha</th>
+                                        <th class="px-6 py-3">Perfil</th>
+                                        <th class="px-6 py-3 text-right">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    <tr v-for="user in usuarios" :key="user.email" class="hover:bg-slate-50">
+                                        <td class="px-6 py-4 font-medium">{{ user.email }}</td>
+                                        <td class="px-6 py-4 font-mono">{{ user.senha }}</td>
+                                        <td class="px-6 py-4">
+                                            <span :class="['px-2 py-0.5 rounded text-xs font-bold uppercase', user.role === 'admin_geral' ? 'bg-red-100 text-red-700' : user.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-700']">
+                                                {{ user.role }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 text-right">
+                                            <button v-if="user.email !== currentUser.email" @click="deleteUser(user.email)" class="text-xs text-red-500 font-semibold hover:underline">Excluir</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- MODAL: CADASTRAR NOVO USUÁRIO -->
+    <div v-if="showAddUserModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-bold text-slate-900">Novo Usuário</h3>
+                <button type="button" @click="showAddUserModal = false" class="text-slate-400 text-2xl font-light">&times;</button>
+            </div>
+            <form @submit.prevent="saveUser" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase">E-mail ou Usuário *</label>
+                    <input v-model="newUser.email" type="text" required class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm w-full">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase">Senha *</label>
+                    <input v-model="newUser.senha" type="text" required class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm w-full">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase">Perfil</label>
+                    <select v-model="newUser.role" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm bg-white w-full">
+                        <option value="consulta">Consulta (Apenas Visualizar/Baixar)</option>
+                        <option value="admin">Administrador (Altera frota, não altera login)</option>
+                        <option value="admin_geral">Dono do App (Controle Total)</option>
+                    </select>
+                </div>
+                <div class="pt-4 border-t flex justify-end gap-2">
+                    <button type="button" @click="showAddUserModal = false" class="px-4 py-2 text-sm border border-slate-300 rounded">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 text-sm bg-blue-600 text-white rounded font-semibold">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: ADICIONAR OU ATUALIZAR DOCUMENTO -->
+    <div v-if="showAddDocumentModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden">
+            <!-- Título Inteligente -->
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-bold text-slate-900">
+                    {{ newDocForm.id ? 'Atualizar Documento — ' + newDocForm.tipoLaudo : 'Adicionar Documento' }}
+                </h3>
+                <button @click="showAddDocumentModal = false" class="text-slate-400 text-2xl font-light">&times;</button>
+            </div>
+            
+            <form @submit.prevent="saveVehicleDocument" class="p-6 space-y-4">
+                <!-- Se for uma atualização (Igual ao seu Print) -->
+                <div v-if="newDocForm.id" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase">Nova Data de Validade</label>
+                        <input v-model="newDocForm.validade" type="date" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase">Novo Arquivo (substitui o anterior)</label>
+                        <input type="file" @change="handleFileChange" class="mt-1 block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+                </div>
+
+                <!-- Se for uma nova inserção (Padrão) -->
+                <div v-else class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase">Tipo de Documento *</label>
+                        <select v-model="newDocForm.tipoLaudo" required class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm bg-white">
+                            <option value="CRLV">CRLV</option>
+                            <option value="Tacógrafo">Tacógrafo</option>
+                            <option value="AET Acústico">AET Acústico</option>
+                            <option value="AET DNIT">AET DNIT</option>
+                            <option value="Laudo Manutenção">Laudo Manutenção</option>
+                            <option value="Laudo Acústico">Laudo Acústico</option>
+                            <option value="Laudo Opacidade">Laudo Opacidade</option>
+                            <option value="Laudo Elétrico">Laudo Elétrico</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase">Resultado do Laudo</label>
+                        <select v-model="newDocForm.resultado" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm bg-white">
+                            <option value="">Selecione o resultado</option>
+                            <option value="Em Dia / Aprovado">Em Dia / Aprovado</option>
+                            <option value="Necessita Refazer">Necessita Refazer</option>
+                            <option value="Reprovado">Reprovado</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase">Descrição (Opcional)</label>
+                        <input v-model="newDocForm.observacao" type="text" placeholder="Ex: Observações" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase">Data de Validade</label>
+                        <input v-model="newDocForm.validade" type="date" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase">Arquivo (PDF, Imagem)</label>
+                        <input type="file" @change="handleFileChange" class="mt-1 block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t flex justify-end gap-2">
+                    <button type="button" @click="showAddDocumentModal = false" class="px-4 py-2 text-sm border border-slate-300 rounded">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 text-sm bg-blue-600 text-white rounded font-semibold">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: EDITAR INFORMAÇÕES BÁSICAS -->
+    <div v-if="showEditBasicModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-bold text-slate-900">Editar Informações Básicas</h3>
+                <button @click="showEditBasicModal = false" class="text-slate-400 text-2xl font-light">&times;</button>
+            </div>
+            <form @submit.prevent="saveBasicEdit" class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase">Tipo de Veículo</label>
+                    <input v-model="editVehicleForm.tipo" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase">Contrato</label>
+                    <input v-model="editVehicleForm.contrato" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm uppercase">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase">Base Operacional</label>
+                    <input v-model="editVehicleForm.base" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm uppercase font-semibold text-slate-700">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase">Equipe</label>
+                    <input v-model="editVehicleForm.equipe" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm uppercase font-semibold text-slate-700">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase">RENAVAM</label>
+                    <input v-model="editVehicleForm.renavam" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase">CHASSI</label>
+                    <input v-model="editVehicleForm.chassi" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm uppercase font-semibold text-slate-700">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase">Número CRLV</label>
+                    <input v-model="editVehicleForm.numCrlv" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase">Coordenação</label>
+                    <input v-model="editVehicleForm.coordenacao" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm uppercase font-semibold text-slate-700">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase">Supervisão</label>
+                    <input v-model="editVehicleForm.supervisao" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm uppercase font-semibold text-slate-700">
+                </div>
+                <div class="pt-4 border-t flex justify-end gap-2">
+                    <button type="button" @click="showEditBasicModal = false" class="px-4 py-2 text-sm border border-slate-300 rounded">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 text-sm bg-blue-600 text-white rounded font-semibold">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: EDITAR ESPECIFICAÇÕES -->
+    <div v-if="showEditSpecModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-bold text-slate-900">Editar Especificações</h3>
+                <button @click="showEditSpecModal = false" class="text-slate-400 text-2xl font-light">&times;</button>
+            </div>
+            <form @submit.prevent="saveSpecEdit" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase">Combustível</label>
+                    <select v-model="editVehicleForm.combustivel" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                        <option value="Diesel">Diesel</option>
+                        <option value="Gasolina">Gasolina</option>
+                        <option value="Etanol">Etanol</option>
+                        <option value="Flex">Flex</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase">Valor Locação</label>
+                    <input v-model="editVehicleForm.valorLocacao" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase">Rastreador</label>
+                    <select v-model="editVehicleForm.rastreador" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                        <option value="Sim">Sim</option>
+                        <option value="Não">Não</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase">Nº Rastreador</label>
+                    <input v-model="editVehicleForm.numRastreador" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                </div>
+                <div class="pt-4 border-t flex justify-end gap-2">
+                    <button type="button" @click="showEditSpecModal = false" class="px-4 py-2 text-sm border border-slate-300 rounded">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 text-sm bg-blue-600 text-white rounded font-semibold">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: ADICIONAR VEÍCULO GERAL -->
+    <div v-if="showAddVehicleModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-bold text-slate-900">Adicionar Veículo</h3>
+                <button @click="showAddVehicleModal = false" class="text-slate-400 text-2xl font-light">&times;</button>
+            </div>
+            <form @submit.prevent="saveVehicle" class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase">Placa *</label>
+                        <input v-model="newVehicle.placa" type="text" required class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase">Modelo *</label>
+                        <input v-model="newVehicle.modelo" type="text" required class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase">Marca</label>
+                        <input v-model="newVehicle.marca" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase">Ano</label>
+                        <input v-model="newVehicle.ano" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase">Tipo de Veículo</label>
+                        <input v-model="newVehicle.tipo" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase">Contrato</label>
+                        <input v-model="newVehicle.contrato" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase">Base Operacional</label>
+                        <input v-model="newVehicle.base" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm uppercase font-semibold text-slate-700">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase">Equipe</label>
+                        <input v-model="newVehicle.equipe" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm uppercase font-semibold text-slate-700">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase">Coordenação</label>
+                        <input v-model="newVehicle.coordenacao" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm uppercase font-semibold text-slate-700">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase">Supervisão</label>
+                        <input v-model="newVehicle.supervisao" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm uppercase font-semibold text-slate-700">
+                    </div>
+                </div>
+                <div class="pt-4 border-t flex justify-end gap-2">
+                    <button type="button" @click="showAddVehicleModal = false" class="px-4 py-2 text-sm border border-slate-300 rounded">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 text-sm bg-blue-600 text-white rounded font-semibold">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
+
+    // ==========================================================
+    // CREDENCIAIS DO BANCO DE DADOS SUPABASE
+    // ==========================================================
+    const SUPABASE_URL = 'https://regfencgflzcypgqpbjb.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_DOqgEdQ8-1pU7mCKf_-lRg_2ZIgYp-4';
+
+    const dbConfigured = (SUPABASE_ANON_KEY !== 'COLE_AQUI_A_SUA_API_KEY_ANON');
+    let supabaseClient = null;
+
+    if (dbConfigured && typeof window.supabase !== 'undefined') {
+        try {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } catch (err) {
+            console.error("Supabase indisponível no momento: ", err);
+        }
+    }
+
+    createApp({
+        setup() {
+            // Sessão & Login
+            const logged = ref(false);
+            const currentUser = ref(null);
+            const loginForm = ref({ username: '', password: '' });
+            const loginError = ref('');
+            const logoExists = ref(true);
+            const showPassword = ref(false);
+
+            // Navegação e Controle de Estados
+            const currentTab = ref('laudos');
+            const selectedVehicle = ref(null);
+
+            // Modais
+            const showAddVehicleModal = ref(false);
+            const showAddLaudoModal = ref(false);
+            const showAddUserModal = ref(false);
+            const showAddDocumentModal = ref(false);
+            const showEditBasicModal = ref(false);
+            const showEditSpecModal = ref(false);
+
+            // Filtros
+            const searchQueryLaudo = ref('');
+            const searchQueryVehicle = ref('');
+            const selectedContract = ref('');
+            const cardFilter = ref(null);
+            
+            // Novos filtros de Categoria de Veículo (Leves / Pesados) e Card de Status
+            const selectedClassFilter = ref('todos');
+            const preventiveCardFilter = ref(null);
+            const searchQueryPreventive = ref('');
+
+            // Modelos de Formulários
+            const editVehicleForm = ref({});
+            const newDocForm = ref({ tipoLaudo: 'CRLV', observacao: '', validade: '', resultado: '', filename: '', fileData: '' });
+            const newVehicle = ref({ placa: '', modelo: '', marca: '', ano: '', contrato: '', base: '', tipo: '', equipe: '', coordenacao: '', supervisao: '' });
+            const newUser = ref({ email: '', senha: '', role: 'consulta' });
+
+            // Dados reativos
+            const veiculos = ref([]);
+            const laudos = ref([]);
+            const usuarios = ref([]);
+
+            // Instâncias de Gráficos ApexCharts para evitar recriações duplicadas
+            let statusChartInstance = null;
+            let regionalChartInstance = null;
+            let distributionChartInstance = null;
+
+            onMounted(async () => {
+                await loadAllData();
+            });
+
+            // Monitora mudanças para redesenhar os gráficos automaticamente (Filtros, Dados, Abas)
+            watch([currentTab, veiculos, selectedClassFilter, preventiveCardFilter, selectedContract, selectedVehicle], async () => {
+                if (currentTab.value === 'preventivas' && !selectedVehicle.value) {
+                    await nextTick();
+                    renderDashboardCharts();
+                }
+            });
+
+            // Renderiza gráficos interativos do ApexCharts baseados nos dados atuais filtrados
+            const renderDashboardCharts = () => {
+                setTimeout(() => {
+                    const statusEl = document.getElementById('chartStatus');
+                    const regionalEl = document.getElementById('chartRegional');
+                    const distributionEl = document.getElementById('chartDistribution');
+                    if (!statusEl || !regionalEl || !distributionEl) return;
+
+                    // Limpa containers antigos
+                    statusEl.innerHTML = '';
+                    regionalEl.innerHTML = '';
+                    distributionEl.innerHTML = '';
+
+                    // Dados de preventivas filtrados no painel
+                    const totalEmDia = countPreventive.value.emDia;
+                    const totalAtencao = countPreventive.value.atencao;
+                    const totalAtrasados = countPreventive.value.atrasados;
+                    const totalActive = totalEmDia + totalAtencao + totalAtrasados;
+                    const compliancePct = totalActive > 0 ? parseFloat(((totalEmDia / totalActive) * 100).toFixed(1)) : 0;
+
+                    // 1. TESTE 2: GRAFICO DE MEDIÇÃO RADIAL TARGET GAUGE (VELOCÍMETRO DE ADESÃO)
+                    const statusOptions = {
+                        chart: { type: 'radialBar', height: 260 },
+                        series: [compliancePct],
+                        colors: ['#10b981'],
+                        plotOptions: {
+                            radialBar: {
+                                startAngle: -110,
+                                endAngle: 110,
+                                track: { background: '#f1f5f9', strokeWidth: '97%' },
+                                dataLabels: {
+                                    name: { show: true, fontSize: '12px', color: '#64748b', offsetY: 15 },
+                                    value: { offsetY: -20, fontSize: '24px', fontWeight: '800', color: '#1e293b' }
+                                }
+                            }
+                        },
+                        labels: ['Adesão Geral']
+                    };
+
+                    statusChartInstance = new ApexCharts(statusEl, statusOptions);
+                    statusChartInstance.render();
+
+                    // 2. CONFIGURAÇÃO DE BARRAS HORIZONTAIS EMPILHADAS (REGIONAIS)
+                    const contracts = availableContracts.value;
+                    const chartEmDiaData = [];
+                    const chartAtencaoData = [];
+                    const chartVencidoData = [];
+
+                    contracts.forEach(contract => {
+                        const list = veiculos.value.filter(v => {
+                            const vContract = v.contrato ? String(v.contrato).trim().toUpperCase() : '';
+                            return vContract === contract.toUpperCase() && matchesClass(v);
+                        });
+                        
+                        let emDia = 0, atencao = 0, vencido = 0;
+                        
+                        list.forEach(v => {
+                            const status = getPreventiveStatus(v);
+                            if (status === 'em-dia') emDia++;
+                            else if (status === 'atencao') atencao++;
+                            else if (status === 'vencido') vencido++;
+                        });
+
+                        chartEmDiaData.push(emDia);
+                        chartAtencaoData.push(atencao);
+                        chartVencidoData.push(vencido);
+                    });
+
+                    const regionalOptions = {
+                        chart: { type: 'bar', height: 260, stacked: true, toolbar: { show: false } },
+                        plotOptions: {
+                            bar: { horizontal: true, barHeight: '45%', borderRadius: 4 }
+                        },
+                        series: [
+                            { name: 'Em Dia', data: chartEmDiaData },
+                            { name: 'Atenção', data: chartAtencaoData },
+                            { name: 'Vencidas', data: chartVencidoData }
+                        ],
+                        colors: ['#10b981', '#f59e0b', '#ef4444'],
+                        xaxis: { categories: contracts },
+                        legend: { position: 'top' },
+                        tooltip: {
+                            y: {
+                                formatter: (val) => `${val} veículos`
+                            }
+                        }
+                    };
+
+                    regionalChartInstance = new ApexCharts(regionalEl, regionalOptions);
+                    regionalChartInstance.render();
+
+                    // 3. NOVO GRÁFICO PROFISSIONAL: CURVA DE DESGASTE DE HODÔMETRO (SPLINE AREA)
+                    const sortedVehicles = [...filteredPreventivesForTable.value].sort((a,b) => a.kmAtual - b.kmAtual);
+                    const categoriesPlacas = sortedVehicles.map(v => v.placa);
+                    const seriesKms = sortedVehicles.map(v => v.kmAtual);
+
+                    const distributionOptions = {
+                        chart: { type: 'area', height: 260, toolbar: { show: false } },
+                        stroke: { curve: 'smooth', width: 2.5 },
+                        colors: ['#3b82f6'],
+                        fill: {
+                            type: 'gradient',
+                            gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.05 }
+                        },
+                        series: [{ name: 'Hodômetro', data: seriesKms }],
+                        xaxis: { categories: categoriesPlacas, labels: { show: false } },
+                        yaxis: { labels: { formatter: (val) => `${Math.round(val/1000)}k` } },
+                        tooltip: { x: { show: true } }
+                    };
+
+                    distributionChartInstance = new ApexCharts(distributionEl, distributionOptions);
+                    distributionChartInstance.render();
+
+                }, 100);
+            };
+
+            const loadAllData = async () => {
+                if (dbConfigured && supabaseClient) {
+                    try {
+                        const { data: users, error: err1 } = await supabaseClient.from('usuarios').select('*');
+                        if (!err1 && users) usuarios.value = users;
+
+                        const { data: vehicles, error: err2 } = await supabaseClient.from('veiculos').select('*');
+                        if (!err2 && vehicles) {
+                            veiculos.value = vehicles.map(v => ({
+                                placa: v.placa, modelo: v.modelo, marca: v.marca, ano: v.ano,
+                                tipo: v.tipo, contrato: v.contrato, base: v.base, renavam: v.renavam,
+                                chassi: v.chassi, num_crlv: v.num_crlv, coordenacao: v.coordenacao,
+                                supervisao: v.supervisao, combustivel: v.combustivel, valorLocacao: v.valor_locacao,
+                                rastreador: v.rastreador, numRastreador: v.num_rastreador, 
+                                kmAtual: parseFloat(v.km_atual) || 0,
+                                ultimaPreventivaKm: parseFloat(v.ultima_preventiva_km) || 0,
+                                dataUltimoAbastecimento: v.data_ultimo_abastecimento || '',
+                                operacao: v.operacao || '',
+                                emailAlerta: v.email_alerta || '',
+                                fotos: v.fotos || [], termo: v.termo || null, equipe: v.equipe || ''
+                            }));
+                        } else {
+                            loadLocalBackup();
+                        }
+
+                        const { data: docs, error: err3 } = await supabaseClient.from('laudos').select('*');
+                        if (!err3 && docs) {
+                            laudos.value = docs.map(d => ({
+                                id: d.id, placa: d.placa, modelo: d.modelo, contrato: d.contrato,
+                                tipoLaudo: d.tipo_laudo, resultado: d.resultado, observacao: d.observacao,
+                                validade: d.validade, filename: d.filename, fileData: d.file_data
+                            }));
+                        }
+                    } catch (e) {
+                        console.error("Erro na busca de dados. Ativando Backup Local.", e);
+                        loadLocalBackup();
+                    }
+                } else {
+                    loadLocalBackup();
+                }
+            };
+
+            const loadLocalBackup = () => {
+                try {
+                    const savedVehicles = localStorage.getItem('sirtec_veiculos');
+                    const savedLaudos = localStorage.getItem('sirtec_laudos');
+                    const savedUsers = localStorage.getItem('sirtec_usuarios');
+
+                    if (savedUsers) {
+                        usuarios.value = JSON.parse(savedUsers);
+                    } else {
+                        usuarios.value = [
+                            { email: 'dono@sirtec.com.br', senha: 'Dono@2024', role: 'admin_geral' },
+                            { email: 'admin@sirtec.com.br', senha: 'Sirtec@2024', role: 'admin' },
+                            { email: 'consulta@sirtec.com.br', senha: 'Consulta@2024', role: 'consulta' }
+                        ];
+                        localStorage.setItem('sirtec_usuarios', JSON.stringify(usuarios.value));
+                    }
+
+                    if (savedVehicles) {
+                        veiculos.value = JSON.parse(savedVehicles);
+                    } else {
+                        veiculos.value = [
+                            { placa: 'IZY0C52', modelo: 'M.BENZ/ATEGO 1719', marca: 'MERCEDES', ano: '2019', tipo: 'LINHA MORTA', contrato: 'BARREIRAS', base: 'EXTREMO OESTE', renavam: '123456789', chassi: '9XXXXXXXXXXXXXX', numCrlv: '987654321', coordenacao: 'COORD_OESTE', supervisao: 'LAURINDO', combustivel: 'Diesel', valorLocacao: '8.500', rastreador: 'Sim', numRastreador: 'RST-900', kmAtual: 12500, ultimaPreventivaKm: 10000, dataUltimoAbastecimento: '28/05/2026 14:02', operacao: 'BARREIRAS - CONSTRUÇÃO', emailAlerta: 'supervisor.oeste@sirtec.com.br', fotos: [], termo: null, equipe: '' },
+                            { placa: 'JAE2D02', modelo: 'M.BENZ/ATEGO 1719', marca: 'MERCEDES', ano: '2019', tipo: 'LINHA MORTA', contrato: 'BARREIRAS', base: 'EXTREMO OESTE', renavam: '', chassi: '', numCrlv: '', coordenacao: '', supervisao: 'LAURINDO', combustivel: 'Diesel', valorLocacao: '8.500', rastreador: 'Não', numRastreador: '', kmAtual: 9800, ultimaPreventivaKm: 0, dataUltimoAbastecimento: '28/05/2026 13:45', operacao: 'EH004 - MANUTENÇÃO', emailAlerta: 'supervisor2@sirtec.com.br', fotos: [], termo: null, equipe: 'EH004' }
+                        ];
+                        localStorage.setItem('sirtec_veiculos', JSON.stringify(veiculos.value));
+                    }
+
+                    if (savedLaudos) {
+                        laudos.value = JSON.parse(savedLaudos);
+                    } else {
+                        laudos.value = [
+                            { id: 1, placa: 'IZY0C52', modelo: 'M.BENZ/ATEGO 1719', contrato: 'BARREIRAS', tipoLaudo: 'CRLV', validade: '2027-12-30', resultado: '', observacao: 'Documento Anual' },
+                            { id: 2, placa: 'JAE2D02', modelo: 'M.BENZ/ATEGO 1719', contrato: 'BARREIRAS', tipoLaudo: 'Outros', validade: '2026-07-31', resultado: '', observacao: 'DNIT' }
+                        ];
+                        localStorage.setItem('sirtec_laudos', JSON.stringify(laudos.value));
+                    }
+                } catch (err) {
+                    console.error("Erro ao carregar dados locais do localStorage:", err);
+                }
+            };
+
+            const persistData = async () => {
+                try {
+                    localStorage.setItem('sirtec_veiculos', JSON.stringify(veiculos.value));
+                    localStorage.setItem('sirtec_laudos', JSON.stringify(laudos.value));
+                    localStorage.setItem('sirtec_usuarios', JSON.stringify(usuarios.value));
+                } catch (err) {
+                    console.error("Erro ao persistir dados localmente:", err);
+                }
+            };
+
+            const handleLogin = () => {
+                const usuarioDigitado = loginForm.value.username.trim().toLowerCase();
+                const senhaDigitada = loginForm.value.password;
+
+                let contaValida = usuarios.value.find(u => 
+                    u.email.toLowerCase() === usuarioDigitado && 
+                    u.senha === senhaDigitada
+                );
+
+                if (!contaValida && usuarioDigitado === 'dono@sirtec.com.br' && senhaDigitada === 'Dono@2024') {
+                    contaValida = { email: 'dono@sirtec.com.br', senha: 'Dono@2024', role: 'admin_geral' };
+                }
+
+                if (contaValida) {
+                    logged.value = true;
+                    currentUser.value = contaValida;
+                    loginError.value = '';
+                } else {
+                    loginError.value = 'Usuário ou senha inválidos.';
+                }
+            };
+
+            const logout = () => {
+                logged.value = false;
+                currentUser.value = null;
+                selectedVehicle.value = null;
+                currentTab.value = 'laudos';
+                loginForm.value = { username: '', password: '' };
+                showPassword.value = false;
+            };
+
+            const handleLogoError = () => {
+                logoExists.value = false;
+            };
+
+            const canEdit = computed(() => {
+                if (!currentUser.value) return false;
+                return currentUser.value.role === 'admin_geral' || currentUser.value.role === 'admin';
+            });
+
+            const currentVehicleIndex = computed(() => {
+                if (!selectedVehicle.value) return -1;
+                return veiculos.value.findIndex(v => v.placa === selectedVehicle.value.placa);
+            });
+
+            const navigateVehicle = (direction) => {
+                const targetIndex = currentVehicleIndex.value + direction;
+                if (targetIndex >= 0 && targetIndex < veiculos.value.length) {
+                    selectedVehicle.value = veiculos.value[targetIndex];
+                }
+            };
+
+            const selectVehicleByPlate = (placa) => {
+                const found = veiculos.value.find(v => v.placa === placa);
+                if (found) {
+                    selectedVehicle.value = found;
+                    currentTab.value = 'veiculos';
+                }
+            };
+
+            // REGRAS DE MANUTENÇÃO PREVENTIVA (CÁLCULOS TOTAIS A CADA 10.000 KM)
+            const getKmRodados = (vehicle) => {
+                if (!vehicle) return 0;
+                const atual = parseFloat(vehicle.kmAtual) || 0;
+                const ultPreventiva = parseFloat(vehicle.ultimaPreventivaKm) || 0;
+                if (ultPreventiva === 0) return 0;
+                const rodados = atual - ultPreventiva;
+                return rodados > 0 ? rodados : 0;
+            };
+
+            const getKmFaltante = (vehicle) => {
+                if (!vehicle) return 0;
+                const ultPreventiva = parseFloat(vehicle.ultimaPreventivaKm) || 0;
+                const atual = parseFloat(vehicle.kmAtual) || 0;
+                if (ultPreventiva === 0) return 10000;
+                return (ultPreventiva + 10000) - atual;
+            };
+
+            const getKmFaltanteLabel = (vehicle) => {
+                if (!vehicle) return '0 km';
+                if (!vehicle.ultimaPreventivaKm) {
+                    return 'Aguardando KM';
+                }
+                const faltante = getKmFaltante(vehicle);
+                return `${formatNumberWithDots(faltante)} km`;
+            };
+
+            const getProximaPreventivaKm = (vehicle) => {
+                if (!vehicle) return 0;
+                const ultPreventiva = parseFloat(vehicle.ultimaPreventivaKm) || 0;
+                return ultPreventiva + 10000;
+            };
+
+            const getPreventiveStatus = (vehicle) => {
+                if (!vehicle) return 'em-dia';
+                if (!vehicle.ultimaPreventivaKm) return 'em-dia'; 
+                const faltam = getKmFaltante(vehicle);
+                if (faltam <= 0) return 'vencido';
+                if (faltam <= 1000) return 'atencao';
+                return 'em-dia';
+            };
+
+            const getPreventiveStatusLabel = (vehicle) => {
+                if (!vehicle || !vehicle.ultimaPreventivaKm) return 'Aguardando KM';
+                const status = getPreventiveStatus(vehicle);
+                if (status === 'vencido') return 'Vencida';
+                if (status === 'atencao') return 'Atenção';
+                return 'Em Dia';
+            };
+
+            const getPreventiveColorClass = (vehicle) => {
+                if (!vehicle || !vehicle.ultimaPreventivaKm) return 'bg-slate-100 text-slate-600';
+                const status = getPreventiveStatus(vehicle);
+                if (status === 'vencido') return 'bg-red-100 text-red-700';
+                if (status === 'atencao') return 'bg-amber-100 text-amber-700';
+                return 'bg-emerald-100 text-emerald-700';
+            };
+
+            const getKmRestanteColor = (vehicle) => {
+                if (!vehicle || !vehicle.ultimaPreventivaKm) return 'text-slate-400';
+                const status = getPreventiveStatus(vehicle);
+                if (status === 'vencido') return 'text-red-600';
+                if (status === 'atencao') return 'text-amber-500';
+                return 'text-emerald-600';
+            };
+
+            // Filtro dinâmico para separar Veículos Leves e Pesados
+            const matchesClass = (v) => {
+                if (selectedClassFilter.value === 'todos') return true;
+                
+                // Classificação Inteligente: Leves vs Pesados
+                const isLeve = (v.tipo && v.tipo.toLowerCase().includes('leve')) || 
+                               (v.modelo && (v.modelo.toLowerCase().includes('uno') || 
+                                             v.modelo.toLowerCase().includes('mobi') || 
+                                             v.modelo.toLowerCase().includes('voyage')));
+                                             
+                if (selectedClassFilter.value === 'leves') return isLeve;
+                if (selectedClassFilter.value === 'pesados') return !isLeve;
+                return true;
+            };
+
+            const countPreventive = computed(() => {
+                let emDia = 0;
+                let atencao = 0;
+                let atrasados = 0;
+
+                const targetList = veiculos.value.filter(v => matchesClass(v) && (!selectedContract.value || (v.contrato && v.contrato.toUpperCase() === selectedContract.value.toUpperCase())));
+
+                if (targetList && Array.isArray(targetList)) {
+                    targetList.forEach(v => {
+                        if (v.ultimaPreventivaKm) {
+                            const status = getPreventiveStatus(v);
+                            if (status === 'em-dia') emDia++;
+                            if (status === 'atencao') atencao++;
+                            if (status === 'vencido') atrasados++;
+                        } else {
+                            emDia++; 
+                        }
+                    });
+                }
+
+                return { emDia, atencao, atrasados };
+            });
+
+            const countKmZerado = computed(() => {
+                if (!veiculos.value) return 0;
+                return veiculos.value.filter(v => !v.kmAtual || v.kmAtual === 0).length;
+            });
+
+            // Geração de relatório híbrida (Excel se houver internet ou CSV formatado caso esteja offline)
+            const exportPreventiveReport = () => {
+                try {
+                    const dataToExport = filteredPreventivesForTable.value.map(v => ({
+                        'Placa': v.placa,
+                        'Modelo': v.modelo,
+                        'Operação (Nome Reduzido)': v.operacao || v.contrato || '—',
+                        'Último Abastecimento (Data)': v.dataUltimoAbastecimento || '—',
+                        'KM Atual (Hodômetro)': v.kmAtual,
+                        'KM Última Preventiva (Manual)': v.ultimaPreventivaKm,
+                        'KM Rodados': getKmRodados(v),
+                        'KM Restantes': getKmFaltante(v),
+                        'Status da Preventiva': getPreventiveStatusLabel(v),
+                        'E-mail cadastrado para Alerta': v.emailAlerta || '—'
+                    }));
+
+                    if (dataToExport.length === 0) {
+                        alert("Nenhum dado disponível para exportação na tabela atual.");
+                        return;
+                    }
+
+                    if (typeof XLSX !== 'undefined') {
+                        // Exportação com motor SheetJS (Se carregado via web)
+                        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+                        const workbook = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(workbook, worksheet, "Preventivas Sirtec");
+                        XLSX.writeFile(workbook, `Relatorio_Preventivas_Sirtec_${new Date().toISOString().slice(0,10)}.xlsx`);
+                    } else {
+                        // Exportação offline de emergência (Gera arquivo CSV compatível com MS Excel)
+                        let csvContent = "\uFEFF"; // Garante acentuação correta no Excel brasileiro
+                        const headers = Object.keys(dataToExport[0]);
+                        csvContent += headers.join(";") + "\n";
+
+                        dataToExport.forEach(row => {
+                            const line = headers.map(header => {
+                                let val = row[header];
+                                if (val === undefined || val === null) val = '';
+                                return `"${String(val).replace(/"/g, '""')}"`;
+                            });
+                            csvContent += line.join(";") + "\n";
+                        });
+
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const link = document.createElement("a");
+                        const url = URL.createObjectURL(blob);
+                        link.setAttribute("href", url);
+                        link.setAttribute("download", `Relatorio_Preventivas_Sirtec_${new Date().toISOString().slice(0,10)}.csv`);
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }
+                } catch (err) {
+                    alert("Erro ao exportar planilha: " + err.message);
+                }
+            };
+
+            const updateVehiclePreventive = async (v) => {
+                persistData();
+                if (dbConfigured && supabaseClient) {
+                    try {
+                        await supabaseClient.from('veiculos').update({
+                            ultima_preventiva_km: parseFloat(v.ultimaPreventivaKm) || 0,
+                            email_alerta: v.emailAlerta || ''
+                        }).eq('placa', v.placa);
+                    } catch (err) {
+                        console.error("Erro ao sincronizar preventiva com Supabase:", err);
+                    }
+                }
+            };
+
+            // LEITURA DO ARQUIVO EXCEL/CSV COM DECODIFICADOR DD/MM/YYYY
+            const handleExcelImport = (e) => {
+                if (typeof XLSX === 'undefined') {
+                    alert("Aguarde o carregamento completo do motor de planilhas.");
+                    return;
+                }
+
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = async (evt) => {
+                    try {
+                        const data = evt.target.result;
+                        const dataUint = new Uint8Array(data);
+                        const workbook = XLSX.read(dataUint, { type: 'array' });
+
+                        const cleanHeader = (str) => {
+                            return String(str || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z0-9]/g, "");
+                        };
+
+                        // 1. Busca inteligente da aba correta
+                        let targetSheetName = null;
+                        for (const sheetName of workbook.SheetNames) {
+                            const worksheet = workbook.Sheets[sheetName];
+                            const preview = XLSX.utils.sheet_to_json(worksheet, { header: 1, range: 0 });
+                            if (preview && preview[0] && preview[0].some(header => cleanHeader(header).includes('PLACA'))) {
+                                targetSheetName = sheetName;
+                                break;
+                            }
+                        }
+
+                        if (!targetSheetName) {
+                            targetSheetName = workbook.SheetNames[0]; 
+                        }
+
+                        const worksheet = workbook.Sheets[targetSheetName];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                        if (jsonData.length === 0) {
+                            alert("A planilha importada está vazia.");
+                            return;
+                        }
+
+                        // 2. Mapeamento estático de cabeçalhos de alta performance O(1)
+                        const firstRow = jsonData[0] || {};
+                        const columnMap = { PLACA: null, HODOMETRO: null, DATATRANSACAO: null, NOMEREDUZIDO: null };
+
+                        const matchConfig = {
+                            PLACA: ['PLACA'],
+                            HODOMETRO: ['HODOMETROOUHORIMETRO', 'HODOMETRO', 'HORIMETRO', 'HODOMETROUHORIMETRO'],
+                            DATATRANSACAO: ['DATATRANSACAO', 'DATATRANSACAODEABASTECIMENTO', 'DATATRANSACOES'],
+                            NOMEREDUZIDO: ['NOMEREDUZIDO', 'OPERACAO', 'NOMEREDUZIDODAOPERACAO']
+                        };
+
+                        for (let key in firstRow) {
+                            const cleaned = cleanHeader(key);
+                            for (let stdKey in matchConfig) {
+                                if (matchConfig[stdKey].includes(cleaned)) {
+                                    columnMap[stdKey] = key;
+                                }
+                            }
+                        }
+
+                        // Conversor de data do Excel para Texto formatado brasileiro
+                        const parseDateValue = (val) => {
+                            if (!val) return '';
+                            if (typeof val === 'number') {
+                                const offset = val > 60 ? 1 : 0; 
+                                const date = new Date(Math.round((val - 25569 - offset) * 86400 * 1000));
+                                const day = String(date.getDate()).padStart(2, '0');
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const year = date.getFullYear();
+                                const hours = String(date.getHours()).padStart(2, '0');
+                                const minutes = String(date.getMinutes()).padStart(2, '0');
+                                return `${day}/${month}/${year} ${hours}:${minutes}`;
+                            }
+                            return String(val).trim();
+                        };
+
+                        // Decodificador de Data específico para o padrão brasileiro DD/MM/YYYY
+                        const convertToJsDate = (val) => {
+                            if (!val) return new Date(0);
+                            if (val instanceof Date) return val;
+                            if (typeof val === 'number') {
+                                const offset = val > 60 ? 1 : 0;
+                                return new Date(Math.round((val - 25569 - offset) * 86400 * 1000));
+                            }
+                            const str = String(val).trim();
+                            
+                            const dmyRegex = /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/;
+                            const match = str.match(dmyRegex);
+                            if (match) {
+                                const day = parseInt(match[1], 10);
+                                const month = parseInt(match[2], 10) - 1; 
+                                const year = parseInt(match[3], 10);
+                                const hour = parseInt(match[4] || 0, 10);
+                                const minute = parseInt(match[5] || 0, 10);
+                                const second = parseInt(match[6] || 0, 10);
+                                return new Date(year, month, day, hour, minute, second);
+                            }
+
+                            const parsed = Date.parse(str);
+                            return isNaN(parsed) ? new Date(0) : new Date(parsed);
+                        };
+
+                        // Filtro temporário para achar apenas o registro mais recente de cada placa no Excel
+                        const mostRecentMap = {}; 
+
+                        for (let i = 0; i < jsonData.length; i++) {
+                            const row = jsonData[i];
+                            try {
+                                const placaRaw = columnMap.PLACA ? row[columnMap.PLACA] : null;
+                                if (!placaRaw) continue;
+
+                                const placa = String(placaRaw).trim().toUpperCase();
+                                
+                                // Verifica se a placa está cadastrada no nosso app para não gastar recursos
+                                const exists = veiculos.value.find(v => v.placa === placa);
+                                if (!exists) continue;
+
+                                const rawDate = columnMap.DATATRANSACAO ? row[columnMap.DATATRANSACAO] : null;
+                                const jsDate = convertToJsDate(rawDate);
+                                
+                                const hodometroRaw = columnMap.HODOMETRO ? row[columnMap.HODOMETRO] : 0;
+                                const hodometro = parseFloat(hodometroRaw) || 0;
+                                
+                                const nomeReduzido = columnMap.NOMEREDUZIDO ? row[columnMap.NOMEREDUZIDO] : '';
+
+                                // Só atualiza se a data da planilha for cronologicamente mais recente do que a data que JÁ está cadastrada no veículo
+                                const systemDateStr = exists.dataUltimoAbastecimento || '';
+                                const systemJsDate = convertToJsDate(systemDateStr);
+
+                                if (jsDate > systemJsDate) {
+                                    if (!mostRecentMap[placa] || jsDate > mostRecentMap[placa].jsDate) {
+                                        mostRecentMap[placa] = {
+                                            hodometro,
+                                            formattedDate: parseDateValue(rawDate),
+                                            nomeReduzido: nomeReduzido ? String(nomeReduzido).trim() : '',
+                                            jsDate
+                                        };
+                                    }
+                                }
+                            } catch (rowErr) {
+                                continue;
+                            }
+                        }
+
+                        let updatedCount = 0;
+
+                        // Atualiza as informações nos veículos do sistema
+                        veiculos.value.forEach(v => {
+                            const match = mostRecentMap[v.placa];
+                            if (match) {
+                                v.kmAtual = match.hodometro;
+                                v.dataUltimoAbastecimento = match.formattedDate;
+                                v.operacao = match.nomeReduzido;
+                                updatedCount++;
+                            }
+                        });
+
+                        persistData();
+
+                        // Envia para o Supabase
+                        if (dbConfigured && supabaseClient) {
+                            for (const v of veiculos.value) {
+                                if (mostRecentMap[v.placa]) {
+                                    try {
+                                        await supabaseClient.from('veiculos').update({
+                                            km_atual: v.kmAtual,
+                                            data_ultimo_abastecimento: v.dataUltimoAbastecimento,
+                                            operacao: v.operacao
+                                        }).eq('placa', v.placa);
+                                    } catch (err) {
+                                        console.error("Erro ao salvar no banco:", err);
+                                    }
+                                }
+                            }
+                        }
+
+                        alert(`Planilha processada! ${updatedCount} veículos atualizados com base no abastecimento mais atual.`);
+                        e.target.value = ''; 
+                    } catch (err) {
+                        console.error("Erro ao analisar dados:", err);
+                        alert("Não foi possível carregar a planilha. Verifique a compatibilidade do arquivo.");
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            };
+
+            const sendAlertEmails = () => {
+                const criticList = veiculos.value.filter(v => v.ultimaPreventivaKm && getPreventiveStatus(v) !== 'em-dia');
+                if (criticList.length === 0) {
+                    alert("Toda a frota está em dia! Nenhum alerta de e-mail precisa ser enviado hoje.");
+                    return;
+                }
+
+                let mailLogs = "Solicitação de e-mails enviada para os seguintes destinatários:\n\n";
+                criticList.forEach(v => {
+                    const statusText = getPreventiveStatusLabel(v);
+                    const email = v.emailAlerta || 'sem-supervisor@sirtec.com.br';
+                    mailLogs += `📧 Alerta enviado para: ${email}\n🚗 Veículo: ${v.placa} (${v.modelo})\n⚠️ KM Restante: ${formatNumberWithDots(getKmFaltante(v))} km (Status: ${statusText})\n---------------------------\n`;
+                    
+                    // Conexão por chamada API nativa (Fetch) à prova de bloqueios
+                    fetch('https://api.emailjs.com/api/v1.0/email/send', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            service_id: 'service_al1jtv7',
+                            template_id: 'template_pe3uuhm',
+                            user_id: 'O_l5t2rwVDWccVN4j', 
+                            template_params: {
+                                to_email: email,
+                                placa: v.placa,
+                                modelo: v.modelo,
+                                km_atual: formatNumberWithDots(v.kmAtual),
+                                km_restante: formatNumberWithDots(getKmFaltante(v)),
+                                status: statusText
+                            }
+                        })
+                    })
+                    .then(res => {
+                        if (res.ok) {
+                            console.log(`Sucesso de envio do servidor para: ${email}`);
+                        } else {
+                            res.text().then(err => {
+                                alert(`Mensagem do servidor do EmailJS para ${email}:\n\n"${err}"`);
+                            });
+                        }
+                    })
+                    .catch(err => {
+                        alert("Erro de conexão com o servidor de e-mail: " + err);
+                    });
+                });
+
+                alert(mailLogs + "\nOs e-mails foram enviados com sucesso por meio do canal direto da API.");
+            };
+
+            const getVehicleDocuments = (placa) => {
+                if (!laudos.value) return [];
+                return laudos.value.filter(l => l.placa === placa);
+            };
+
+            const triggerInput = (id) => {
+                const elem = document.getElementById(id);
+                if (elem) elem.click();
+            };
+
+            const handleVehiclePhoto = async (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = async (event) => {
+                        if (!selectedVehicle.value.fotos) selectedVehicle.value.fotos = [];
+                        
+                        selectedVehicle.value.fotos.push({
+                            name: file.name,
+                            data: event.target.result
+                        });
+
+                        persistData();
+
+                        if (dbConfigured && supabaseClient) {
+                            await supabaseClient.from('veiculos').update({
+                                fotos: selectedVehicle.value.fotos
+                            }).eq('placa', selectedVehicle.value.placa);
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const removeVehiclePhoto = async (index) => {
+                selectedVehicle.value.fotos.splice(index, 1);
+                persistData();
+
+                if (dbConfigured && supabaseClient) {
+                    await supabaseClient.from('veiculos').update({
+                        fotos: selectedVehicle.value.fotos
+                    }).eq('placa', selectedVehicle.value.placa);
+                }
+            };
+
+            const handleVehicleTermo = async (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = async (event) => {
+                        selectedVehicle.value.termo = {
+                            name: file.name,
+                            data: event.target.result
+                        };
+                        persistData();
+
+                        if (dbConfigured && supabaseClient) {
+                            await supabaseClient.from('veiculos').update({
+                                termo: selectedVehicle.value.termo
+                            }).eq('placa', selectedVehicle.value.placa);
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const downloadTermo = () => {
+                if (selectedVehicle.value && selectedVehicle.value.termo) {
+                    const link = document.createElement('a');
+                    link.href = selectedVehicle.value.termo.data;
+                    link.download = selectedVehicle.value.termo.name;
+                    link.click();
+                }
+            };
+
+            const removeTermo = async () => {
+                if (confirm('Deseja remover o termo de responsabilidade?')) {
+                    selectedVehicle.value.termo = null;
+                    persistData();
+
+                    if (dbConfigured && supabaseClient) {
+                        await supabaseClient.from('veiculos').update({
+                            termo: null
+                        }).eq('placa', selectedVehicle.value.placa);
+                    }
+                }
+            };
+
+            const handleFileChange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    newDocForm.value.filename = file.name;
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        newDocForm.value.fileData = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const viewDocument = (doc) => {
+                if (doc.fileData) {
+                    const win = window.open();
+                    win.document.write(`<iframe src="${doc.fileData}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+                } else {
+                    alert(`Visualizando documento "${doc.tipoLaudo}"`);
+                }
+            };
+
+            const downloadDocument = (doc) => {
+                if (doc.fileData) {
+                    const link = document.createElement('a');
+                    link.href = doc.fileData;
+                    link.download = doc.filename || `${doc.tipoLaudo}_${doc.placa}`;
+                    link.click();
+                } else {
+                    alert(`Baixando documento: ${doc.tipoLaudo}`);
+                }
+            };
+
+            const editDocument = (doc) => {
+                newDocForm.value = { 
+                    id: doc.id,
+                    tipoLaudo: doc.tipoLaudo, 
+                    resultado: doc.resultado || '',
+                    observacao: doc.observacao || '', 
+                    validade: doc.validade || '', 
+                    filename: doc.filename || '', 
+                    fileData: doc.fileData || '' 
+                };
+                showAddDocumentModal.value = true;
+            };
+
+            // Função para resetar e carregar o modal de adição limpo
+            const openAddDocumentModal = () => {
+                newDocForm.value = { tipoLaudo: 'CRLV', observacao: '', validade: '', resultado: '', filename: '', fileData: '' };
+                showAddDocumentModal.value = true;
+            };
+
+            const saveVehicleDocument = async () => {
+                const laudoPayload = {
+                    placa: selectedVehicle.value.placa,
+                    modelo: selectedVehicle.value.modelo,
+                    contrato: selectedVehicle.value.contrato,
+                    tipoLaudo: newDocForm.value.tipoLaudo,
+                    resultado: newDocForm.value.resultado,
+                    observacao: newDocForm.value.observacao,
+                    validade: newDocForm.value.validade,
+                    filename: newDocForm.value.filename,
+                    fileData: newDocForm.value.fileData
+                };
+
+                if (newDocForm.value.id) {
+                    const idx = laudos.value.findIndex(l => l.id === newDocForm.value.id);
+                    if (idx !== -1) {
+                        laudos.value[idx] = { id: newDocForm.value.id, ...laudoPayload };
+                    }
+                    if (dbConfigured && supabaseClient) {
+                        await supabaseClient.from('laudos').update({
+                            tipo_laudo: laudoPayload.tipoLaudo,
+                            resultado: laudoPayload.resultado,
+                            observacao: laudoPayload.observacao,
+                            validade: laudoPayload.validade,
+                            filename: laudoPayload.filename,
+                            file_data: laudoPayload.fileData
+                        }).eq('id', newDocForm.value.id);
+                    }
+                } else {
+                    const tempId = Date.now();
+                    laudos.value.unshift({ id: tempId, ...laudoPayload });
+                    
+                    if (dbConfigured && supabaseClient) {
+                        const { data, error } = await supabaseClient.from('laudos').insert([{
+                            placa: laudoPayload.placa,
+                            modelo: laudoPayload.modelo,
+                            contrato: laudoPayload.contrato,
+                            tipo_la_laudo: laudoPayload.tipoLaudo,
+                            resultado: laudoPayload.resultado,
+                            observacao: laudoPayload.observacao,
+                            validade: laudoPayload.validade,
+                            filename: laudoPayload.filename,
+                            file_data: laudoPayload.fileData
+                        }]).select();
+
+                        if (!error && data) {
+                            laudos.value[0].id = data[0].id;
+                        }
+                    }
+                }
+
+                persistData();
+                showAddDocumentModal.value = false;
+            };
+
+            const openEditBasicModal = () => {
+                editVehicleForm.value = { ...selectedVehicle.value };
+                showEditBasicModal.value = true;
+            };
+
+            const saveBasicEdit = async () => {
+                const idx = veiculos.value.findIndex(v => v.placa === selectedVehicle.value.placa);
+                if (idx !== -1) {
+                    veiculos.value[idx] = { ...editVehicleForm.value };
+                    selectedVehicle.value = veiculos.value[idx];
+                    persistData();
+
+                    if (dbConfigured && supabaseClient) {
+                        await supabaseClient.from('veiculos').update({
+                            renavam: editVehicleForm.value.renavam,
+                            chassi: editVehicleForm.value.chassi,
+                            num_crlv: editVehicleForm.value.numCrlv,
+                            coordenacao: editVehicleForm.value.coordenacao,
+                            supervisao: editVehicleForm.value.supervisao,
+                            tipo: editVehicleForm.value.tipo,
+                            contrato: editVehicleForm.value.contrato,
+                            base: editVehicleForm.value.base,
+                            equipe: editVehicleForm.value.equipe
+                        }).eq('placa', selectedVehicle.value.placa);
+                    }
+                }
+                showEditBasicModal.value = false;
+            };
+
+            const openEditSpecModal = () => {
+                editVehicleForm.value = { ...selectedVehicle.value };
+                showEditSpecModal.value = true;
+            };
+
+            const saveSpecEdit = async () => {
+                const idx = veiculos.value.findIndex(v => v.placa === selectedVehicle.value.placa);
+                if (idx !== -1) {
+                    veiculos.value[idx] = { ...editVehicleForm.value };
+                    selectedVehicle.value = veiculos.value[idx];
+                    persistData();
+
+                    if (dbConfigured && supabaseClient) {
+                        await supabaseClient.from('veiculos').update({
+                            combustivel: editVehicleForm.value.combustivel,
+                            valor_locacao: editVehicleForm.value.valorLocacao,
+                            rastreador: editVehicleForm.value.rastreador,
+                            num_rastreador: editVehicleForm.value.numRastreador
+                        }).eq('placa', selectedVehicle.value.placa);
+                    }
+                }
+                showEditSpecModal.value = false;
+            };
+
+            const saveUser = async () => {
+                if (usuarios.value.some(u => u.email.toLowerCase() === newUser.value.email.trim().toLowerCase())) {
+                    alert('Este usuário já está cadastrado!');
+                    return;
+                }
+
+                const userObj = {
+                    email: newUser.value.email.trim(),
+                    senha: newUser.value.senha,
+                    role: newUser.value.role
+                };
+
+                usuarios.value.push(userObj);
+                persistData();
+
+                if (dbConfigured && supabaseClient) {
+                    await supabaseClient.from('usuarios').insert([userObj]);
+                }
+
+                showAddUserModal.value = false;
+                newUser.value = { email: '', senha: '', role: 'consulta' };
+            };
+
+            const deleteUser = async (email) => {
+                if (confirm(`Remover usuário ${email}?`)) {
+                    usuarios.value = usuarios.value.filter(u => u.email !== email);
+                    persistData();
+
+                    if (dbConfigured && supabaseClient) {
+                        await supabaseClient.from('usuarios').delete().eq('email', email);
+                    }
+                }
+            };
+
+            const saveVehicle = async () => {
+                const plateUpper = newVehicle.value.placa.trim().toUpperCase();
+                if (veiculos.value.some(v => v.placa.toUpperCase() === plateUpper)) {
+                    alert('Já existe um veículo com essa placa!');
+                    return;
+                }
+
+                const vehicleObj = {
+                    placa: plateUpper,
+                    modelo: newVehicle.value.modelo,
+                    marca: newVehicle.value.marca,
+                    ano: newVehicle.value.ano,
+                    contrato: newVehicle.value.contrato,
+                    base: newVehicle.value.base,
+                    tipo: newVehicle.value.tipo,
+                    equipe: newVehicle.value.equipe,
+                    coordenacao: newVehicle.value.coordenacao,
+                    supervisao: newVehicle.value.supervisao,
+                    kmAtual: 0,
+                    ultimaPreventivaKm: 0,
+                    dataUltimoAbastecimento: '',
+                    operacao: '',
+                    emailAlerta: '',
+                    fotos: [],
+                    termo: null
+                };
+
+                veiculos.value.unshift(vehicleObj);
+                persistData();
+
+                if (dbConfigured && supabaseClient) {
+                    await supabaseClient.from('veiculos').insert([{
+                        placa: vehicleObj.placa,
+                        modelo: vehicleObj.modelo,
+                        marca: vehicleObj.marca,
+                        ano: vehicleObj.ano,
+                        contrato: vehicleObj.contrato,
+                        base: vehicleObj.base,
+                        tipo: vehicleObj.tipo,
+                        equipe: vehicleObj.equipe,
+                        coordenacao: vehicleObj.coordenacao,
+                        supervisao: vehicleObj.supervisao,
+                        km_atual: 0,
+                        ultima_preventiva_km: 0,
+                        data_ultimo_abastecimento: '',
+                        operacao: '',
+                        email_alerta: '',
+                        fotos: [],
+                        termo: null
+                    }]);
+                }
+
+                showAddVehicleModal.value = false; 
+                newVehicle.value = { placa: '', modelo: '', marca: '', ano: '', contrato: '', base: '', tipo: '', equipe: '', coordenacao: '', supervisao: '' };
+            };
+
+            const deleteVehicle = async (placa) => {
+                if (confirm(`Deseja excluir definitivamente o veículo ${placa}?`)) {
+                    veiculos.value = veiculos.value.filter(v => v.placa !== placa);
+                    laudos.value = laudos.value.filter(l => l.placa !== placa);
+                    selectedVehicle.value = null;
+                    persistData();
+
+                    if (dbConfigured && supabaseClient) {
+                        await supabaseClient.from('veiculos').delete().eq('placa', placa);
+                    }
+                }
+            };
+
+            const deleteLaudo = async (id) => {
+                if (confirm('Deseja excluir este laudo?')) {
+                    laudos.value = laudos.value.filter(l => l.id !== id);
+                    persistData();
+
+                    if (dbConfigured && supabaseClient) {
+                        await supabaseClient.from('laudos').delete().eq('id', id);
+                    }
+                }
+            };
+
+            const getDaysRemaining = (validadeStr) => {
+                if (!validadeStr) return null;
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const expiry = new Date(validadeStr);
+                const diffTime = expiry - today;
+                return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            };
+
+            const getStatusKey = (laudo) => {
+                if (!laudo.validade) return 'faltante';
+                const days = getDaysRemaining(laudo.validade);
+                if (days < 0) return 'vencido';
+                if (days >= 0 && days <= 30) return 'proximo';
+                return 'em-dia';
+            };
+
+            // Deduplicação Inteligente de Contratos (Ignorando Caixa Alta/Baixa)
+            const availableContracts = computed(() => {
+                if (!veiculos.value || !Array.isArray(veiculos.value)) return [];
+                const contracts = veiculos.value
+                    .map(v => v.contrato ? String(v.contrato).trim().toUpperCase() : '')
+                    .filter(c => c !== '');
+                return [...new Set(contracts)];
+            });
+
+            const countStatus = computed(() => {
+                let emDia = 0;
+                let vencidos = 0;
+                let proximos = 0;
+                let faltantes = 0;
+
+                if (laudos.value && Array.isArray(laudos.value)) {
+                    laudos.value.forEach(l => {
+                        const status = getStatusKey(l);
+                        if (status === 'em-dia') emDia++;
+                        if (status === 'vencido') vencidos++;
+                        if (status === 'proximo') proximos++;
+                        if (status === 'faltante') faltantes++;
+                    });
+                }
+
+                return { emDia, vencidos, proximos, faltantes };
+            });
+
+            const filteredLaudos = computed(() => {
+                if (!laudos.value) return [];
+                return laudos.value.filter(l => {
+                    const query = searchQueryLaudo.value.toLowerCase();
+                    const matchesQuery = !query || 
+                        l.placa.toLowerCase().includes(query) || 
+                        l.modelo.toLowerCase().includes(query) || 
+                        l.contrato.toLowerCase().includes(query) ||
+                        l.tipoLaudo.toLowerCase().includes(query);
+
+                    const matchesContract = !selectedContract.value || l.contrato === selectedContract.value;
+
+                    let matchesCard = true;
+                    if (cardFilter.value) {
+                        matchesCard = getStatusKey(l) === cardFilter.value;
+                    }
+
+                    return matchesQuery && matchesContract && matchesCard;
+                });
+            });
+
+            // Filtro de Veículos integrado com a barra de busca e com as abas de categoria (Leves/Pesados)
+            const filteredVeiculos = computed(() => {
+                if (!veiculos.value) return [];
+                return veiculos.value.filter(v => {
+                    const query = searchQueryVehicle.value.toLowerCase();
+                    const matchesQuery = !query || 
+                        v.placa.toLowerCase().includes(query) || 
+                        v.modelo.toLowerCase().includes(query) || 
+                        v.marca.toLowerCase().includes(query) || 
+                        (v.contrato && v.contrato.toLowerCase().includes(query));
+                        
+                    return matchesQuery && matchesClass(v);
+                });
+            });
+
+            // Filtro de Preventivas integrado com a busca, categoria (Leves/Pesados), contrato (Deduplicado) e cards clickáveis
+            const filteredPreventivesForTable = computed(() => {
+                if (!veiculos.value) return [];
+                return veiculos.value.filter(v => {
+                    // 1. Filtro de Categoria (Leves / Pesados)
+                    if (!matchesClass(v)) return false;
+
+                    // 2. Filtro dos Cards de Status Clickáveis
+                    if (preventiveCardFilter.value) {
+                        const status = getPreventiveStatus(v);
+                        if (preventiveCardFilter.value !== status) return false;
+                    }
+
+                    // 3. Filtro por Contrato Inteligente (Case-Insensitive)
+                    if (selectedContract.value) {
+                        const vContract = v.contrato ? String(v.contrato).trim().toUpperCase() : '';
+                        if (vContract !== selectedContract.value.toUpperCase()) return false;
+                    }
+
+                    // 4. Busca Local de Placa, Modelo ou Operação na Tabela
+                    if (searchQueryPreventive.value) {
+                        const query = searchQueryPreventive.value.toLowerCase().trim();
+                        const placa = v.placa ? v.placa.toLowerCase() : '';
+                        const modelo = v.modelo ? v.modelo.toLowerCase() : '';
+                        const operacao = v.operacao ? v.operacao.toLowerCase() : '';
+                        const contrato = v.contrato ? v.contrato.toLowerCase() : '';
+                        
+                        if (!placa.includes(query) && !modelo.includes(query) && !operacao.includes(query) && !contrato.includes(query)) {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                });
+            });
+
+            // Média de Km Rodados (Estatística Corporativa)
+            const averageKmRun = computed(() => {
+                const list = filteredPreventivesForTable.value.filter(v => v.ultimaPreventivaKm > 0);
+                if (list.length === 0) return 0;
+                const total = list.reduce((sum, v) => sum + getKmRodados(v), 0);
+                return Math.round(total / list.length);
+            });
+
+            // Previsão de Custo com base nas preventivas atrasadas (R$ 1.250 por veículo)
+            const projectedCost = computed(() => {
+                return countPreventive.value.atrasados * 1250;
+            });
+
+            // Identifica as 3 próximas paradas mais urgentes (menor KM restante e que tem preventiva cadastrada)
+            const upcomingStops = computed(() => {
+                if (!veiculos.value) return [];
+                return veiculos.value
+                    .filter(v => v.ultimaPreventivaKm > 0 && getPreventiveStatus(v) !== 'vencido')
+                    .map(v => ({
+                        placa: v.placa,
+                        modelo: v.modelo,
+                        faltam: getKmFaltante(v)
+                    }))
+                    .sort((a, b) => a.faltam - b.faltam)
+                    .slice(0, 3);
+            });
+
+            // Porcentagem de Conformidade Preventiva Geral
+            const compliancePercentage = computed(() => {
+                const total = totalPreventiveCount.value;
+                if (total === 0) return 0;
+                return Math.round((countPreventive.value.emDia / total) * 100);
+            });
+
+            // Quantidade Total de Veículos Filtrados para a Preventiva
+            const totalPreventiveCount = computed(() => {
+                const list = veiculos.value.filter(v => matchesClass(v) && (!selectedContract.value || (v.contrato && v.contrato.toUpperCase() === selectedContract.value.toUpperCase())));
+                return list.length;
+            });
+
+            // Geração de Ranking de Conformidade por Regional de forma Dinâmica
+            const regionalComplianceRanking = computed(() => {
+                const contracts = availableContracts.value;
+                return contracts.map(contract => {
+                    const list = veiculos.value.filter(v => v.contrato && v.contrato.toUpperCase() === contract.toUpperCase() && matchesClass(v));
+                    const total = list.length;
+                    let emDia = 0;
+                    list.forEach(v => {
+                        if (getPreventiveStatus(v) === 'em-dia' || !v.ultimaPreventivaKm) {
+                            emDia++;
+                        }
+                    });
+                    const percentage = total > 0 ? Math.round((emDia / total) * 100) : 0;
+                    return { contrato: contract, emDia, total, percentage };
+                }).sort((a, b) => b.percentage - a.percentage);
+            });
+
+            const setPreventiveCardFilter = (status) => {
+                preventiveCardFilter.value = preventiveCardFilter.value === status ? null : status;
+            };
+
+            const setCardFilter = (status) => {
+                cardFilter.value = cardFilter.value === status ? null : status;
+            };
+
+            const clearFilters = () => {
+                searchQueryLaudo.value = '';
+                selectedContract.value = '';
+                cardFilter.value = null;
+                preventiveCardFilter.value = null;
+                selectedClassFilter.value = 'todos';
+                searchQueryPreventive.value = '';
+            };
+
+            const formatFilterName = (filter) => {
+                const map = { 'em-dia': 'Em Dia', 'vencido': 'Vencido', 'proximo': 'Próximo do Vencimento', 'faltante': 'Faltante' };
+                return map[filter] || filter;
+            };
+
+            const getStatusLabel = (laudo) => {
+                if (!laudo.validade) return 'Faltante';
+                const days = getDaysRemaining(laudo.validade);
+                if (days < 0) return `Vencido há ${Math.abs(days)} dias`;
+                if (days === 0) return 'Vence hoje';
+                return `Válido por ${days} dias`;
+            };
+
+            const getStatusBadgeClass = (laudo) => {
+                const key = getStatusKey(laudo);
+                const base = "px-2.5 py-1 rounded font-bold text-[10px] uppercase ";
+                if (key === 'vencido') return base + "bg-red-50 text-red-700 border border-red-200";
+                if (key === 'proximo') return base + "bg-amber-50 text-amber-700 border border-amber-200";
+                if (key === 'faltante') return base + "bg-slate-100 text-slate-600 border border-slate-200";
+                return base + "bg-emerald-50 text-emerald-700 border border-emerald-200";
+            };
+
+            const getResultadoBadgeClass = (resultado) => {
+                const base = "px-2.5 py-1 rounded font-bold text-[10px] uppercase inline-block mt-1 ";
+                if (resultado === 'Reprovado') return base + "bg-red-100 text-red-700";
+                if (resultado === 'Necessita Refazer') return base + "bg-amber-100 text-amber-700";
+                return base + "bg-emerald-100 text-emerald-700";
+            };
+
+            const formatDate = (dateStr) => {
+                if (!dateStr) return '';
+                const parts = dateStr.split('-');
+                if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                return dateStr;
+            };
+
+            // Nova função blindada e rápida para formatação com pontos de milhar independentemente do navegador
+            const formatNumberWithDots = (num) => {
+                if (num === undefined || num === null) return '0';
+                return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            };
+
+            return {
+                logged, currentUser, loginForm, loginError, handleLogin, logout, handleLogoError, logoExists, canEdit, dbConfigured, showPassword,
+                currentTab, selectedVehicle, currentVehicleIndex, navigateVehicle, selectVehicleByPlate,
+                showAddVehicleModal, showAddLaudoModal, showAddUserModal, showAddDocumentModal, showEditBasicModal, showEditSpecModal,
+                searchQueryLaudo, searchQueryVehicle, selectedContract, cardFilter,
+                editVehicleForm, newDocForm, newVehicle, newUser, veiculos, laudos, usuarios,
+                getKmFaltante, getKmFaltanteLabel, getProximaPreventivaKm, getKmRodados, getPreventiveStatus, getPreventiveStatusLabel, getPreventiveColorClass, getKmRestanteColor, countPreventive, averageKmRun, countKmZerado, projectedCost, upcomingStops, updateVehiclePreventive, handleExcelImport, sendAlertEmails,
+                getVehicleDocuments, triggerInput, handleVehiclePhoto, removeVehiclePhoto, handleVehicleTermo, downloadTermo, removeTermo, handleFileChange, viewDocument, downloadDocument, editDocument, openAddDocumentModal,
+                saveVehicleDocument, openEditBasicModal, saveBasicEdit, openEditSpecModal, saveSpecEdit,
+                saveUser, deleteUser, saveVehicle, deleteVehicle, deleteLaudo,
+                availableContracts, countStatus, filteredLaudos, filteredVeiculos,
+                setCardFilter, clearFilters, formatFilterName, getStatusLabel, getStatusBadgeClass, getResultadoBadgeClass, formatDate,
+                formatNumberWithDots,
+                selectedClassFilter, preventiveCardFilter, searchQueryPreventive, filteredPreventivesForTable, setPreventiveCardFilter, exportPreventiveReport,
+                compliancePercentage, totalPreventiveCount, regionalComplianceRanking
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
