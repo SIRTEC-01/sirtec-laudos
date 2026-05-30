@@ -114,7 +114,7 @@
             </nav>
         </header>
 
-        <!-- MAIN AREA (Adaptada para comportar o painel lateral quando na aba de Preventivas) -->
+        <!-- MAIN AREA -->
         <main :class="['flex-1 p-4 md:p-6 w-full mx-auto pb-24 md:pb-6', currentTab === 'preventivas' && !selectedVehicle ? 'flex flex-col md:flex-row gap-6 max-w-[1450px]' : 'max-w-7xl']">
 
             <!-- Botão expansor de filtros para Celular -->
@@ -122,7 +122,7 @@
                 <span>🔍 {{ showMobileFilters ? 'Ocultar Painel de Filtros e Métricas' : 'Exibir Filtros e Métricas' }}</span>
             </button>
 
-            <!-- PAINEL LATERAL ESQUERDO: FILTROS E ANÁLISES (Retrátil no celular para não empurrar os dados para baixo) -->
+            <!-- PAINEL LATERAL ESQUERDO: FILTROS E ANÁLISES -->
             <aside v-if="currentTab === 'preventivas' && !selectedVehicle" 
                    :class="['w-full md:w-80 bg-white p-5 rounded-lg border border-slate-200 shadow-sm flex-col gap-6 self-start shrink-0 animate-fade-in', showMobileFilters ? 'flex' : 'hidden md:flex']">
                 <div class="border-b border-slate-100 pb-3">
@@ -174,7 +174,7 @@
                 <button @click="clearFilters" class="w-full mt-2 py-2 text-xs font-semibold border border-slate-300 rounded hover:bg-slate-50 text-slate-600 transition-colors">
                     Limpar Filtros
                 </button>
-            </</aside>
+            </aside>
 
             <!-- CONTEÚDO PRINCIPAL (Tabelas, Detalhes ou Dashboard) -->
             <div class="flex-1 min-w-0 space-y-6">
@@ -664,7 +664,7 @@
                         </div>
                     </div>
 
-                    <!-- TAB: PREVENTIVAS (DASHBOARD CORPORATIVO DE MANUTENÇÃO PREVENTIVA) -->
+                    <!-- TAB: PREVENTIVAS -->
                     <div v-if="currentTab === 'preventivas'" class="space-y-6">
                         <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                             <div>
@@ -681,16 +681,15 @@
                             </div>
                         </div>
 
-                        <!-- CARDS DE RESUMO DE PREVENTIVAS (Retornado para o padrão original bg-white) -->
+                        <!-- CARDS DE RESUMO DE PREVENTIVAS -->
                         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                            <!-- Card 1: Compliance Rate com Anel Circular Dinâmico -->
+                            <!-- Card 1 -->
                             <div @click="setPreventiveCardFilter('em-dia')" :class="['cursor-pointer bg-white p-4 md:p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-emerald-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 duration-300 flex items-center justify-between', preventiveCardFilter === 'em-dia' ? 'ring-4 ring-emerald-100' : '']">
                                 <div>
                                     <span class="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-wider block">Adesão</span>
                                     <div class="text-xl md:text-3xl font-black text-slate-800 mt-1">{{ compliancePercentage }}%</div>
                                     <p class="text-[8px] md:text-[10px] text-emerald-600 mt-1.5 font-bold">{{ countPreventive.emDia }}/{{ totalPreventiveCount }} OK</p>
                                 </div>
-                                <!-- Anel de Progresso Circular SVG -->
                                 <div class="relative h-10 w-10 md:h-14 md:w-14 shrink-0 flex items-center justify-center">
                                     <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                                         <path class="text-slate-100" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
@@ -700,7 +699,7 @@
                                 </div>
                             </div>
 
-                            <!-- Card 2: Atenção (Retornado para o padrão original bg-white) -->
+                            <!-- Card 2 -->
                             <div @click="setPreventiveCardFilter('atencao')" :class="['cursor-pointer bg-white p-4 md:p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-amber-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 duration-300 flex flex-col justify-between', preventiveCardFilter === 'atencao' ? 'ring-4 ring-amber-100' : '']">
                                 <div class="flex justify-between items-start">
                                     <span class="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-wider block">Atenção</span>
@@ -712,7 +711,7 @@
                                 <p class="text-[8px] md:text-[10px] text-slate-400 mt-1.5 font-semibold">&lt; 1.000 km</p>
                             </div>
 
-                            <!-- Card 3: Atrasados (Retornado para o padrão original bg-white) -->
+                            <!-- Card 3 -->
                             <div @click="setPreventiveCardFilter('vencido')" :class="['cursor-pointer bg-white p-4 md:p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-red-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 duration-300 flex flex-col justify-between', preventiveCardFilter === 'vencido' ? 'ring-4 ring-red-100' : '']">
                                 <div class="flex justify-between items-start">
                                     <span class="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-wider block">Atrasados</span>
@@ -724,7 +723,7 @@
                                 <p class="text-[8px] md:text-[10px] text-slate-400 mt-1.5 font-semibold">Excederam o limite</p>
                             </div>
 
-                            <!-- Card 4: Orçamento Estimado Projetado -->
+                            <!-- Card 4 -->
                             <div class="bg-white p-4 md:p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-blue-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] duration-300 flex flex-col justify-between">
                                 <div class="flex justify-between items-start">
                                     <span class="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-wider block">Est. Correção</span>
