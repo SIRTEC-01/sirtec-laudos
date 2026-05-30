@@ -23,11 +23,19 @@
         [v-cloak] {
             display: none !important;
         }
+        /* Utilitário para ocultar barra de rolagem em menus horizontais móveis */
+        .scrollbar-none::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-none {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
     </style>
 </head>
-<body>
+<body class="bg-slate-50">
 
-<div id="app" v-cloak class="min-h-screen flex flex-col">
+<div id="app" v-cloak class="min-h-screen flex flex-col pb-16 md:pb-0">
 
     <!-- Indicador de Modo de Operação (Local ou Nuvem) no topo da tela de login -->
     <div v-if="!logged" :class="['text-center py-1.5 text-xs font-semibold text-white', dbConfigured ? 'bg-emerald-600' : 'bg-amber-600']">
@@ -71,7 +79,7 @@
     <div v-else class="flex-1 flex flex-col">
         <!-- Header -->
         <header class="bg-white border-b border-slate-200 px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 justify-between w-full md:w-auto">
                 <img src="logo.png" alt="Sirtec Logo" class="h-12 w-auto object-contain" @error="handleLogoError">
                 
                 <!-- TESTE 1: BARRA DE STATUS DINÂMICA NO CABEÇALHO (CAIXA VERMELHA) -->
@@ -86,7 +94,8 @@
                 </div>
             </div>
             
-            <nav class="flex items-center gap-1">
+            <!-- Menu do Topo responsivo com scroll horizontal suave no celular -->
+            <nav class="flex items-center gap-1 overflow-x-auto whitespace-nowrap max-w-full pb-2 md:pb-0 scrollbar-none shrink-0 w-full md:w-auto">
                 <button @click="currentTab = 'laudos'; selectedVehicle = null" :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', currentTab === 'laudos' && !selectedVehicle ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50']">
                     Laudos
                 </button>
@@ -99,17 +108,23 @@
                 <button v-if="currentUser && currentUser.role === 'admin_geral'" @click="currentTab = 'usuarios'; selectedVehicle = null" :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', currentTab === 'usuarios' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50']">
                     Usuários (ADM)
                 </button>
-                <button @click="logout" class="ml-4 px-3 py-2 text-sm font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-md flex items-center gap-1 transition-colors">
+                <button @click="logout" class="ml-auto md:ml-4 px-3 py-2 text-sm font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-md flex items-center gap-1 transition-colors">
                     Sair
                 </button>
             </nav>
         </header>
 
         <!-- MAIN AREA (Adaptada para comportar o painel lateral quando na aba de Preventivas) -->
-        <main :class="['flex-1 p-6 w-full mx-auto', currentTab === 'preventivas' && !selectedVehicle ? 'flex flex-col md:flex-row gap-6 max-w-[1450px]' : 'max-w-7xl']">
+        <main :class="['flex-1 p-4 md:p-6 w-full mx-auto pb-24 md:pb-6', currentTab === 'preventivas' && !selectedVehicle ? 'flex flex-col md:flex-row gap-6 max-w-[1450px]' : 'max-w-7xl']">
 
-            <!-- PAINEL LATERAL ESQUERDO: FILTROS E ANÁLISES (Padronizado sem duplicidades de caixa de texto) -->
-            <aside v-if="currentTab === 'preventivas' && !selectedVehicle" class="w-full md:w-80 bg-white p-5 rounded-lg border border-slate-200 shadow-sm flex flex-col gap-6 self-start shrink-0 animate-fade-in">
+            <!-- Botão expansor de filtros para Celular -->
+            <button v-if="currentTab === 'preventivas' && !selectedVehicle" @click="showMobileFilters = !showMobileFilters" class="md:hidden w-full mb-4 bg-slate-800 hover:bg-slate-950 text-white py-3 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all">
+                <span>🔍 {{ showMobileFilters ? 'Ocultar Painel de Filtros e Métricas' : 'Exibir Filtros e Métricas' }}</span>
+            </button>
+
+            <!-- PAINEL LATERAL ESQUERDO: FILTROS E ANÁLISES (Retrátil no celular para não empurrar os dados para baixo) -->
+            <aside v-if="currentTab === 'preventivas' && !selectedVehicle" 
+                   :class="['w-full md:w-80 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex-col gap-6 self-start shrink-0 animate-fade-in', showMobileFilters ? 'flex' : 'hidden md:flex']">
                 <div class="border-b border-slate-100 pb-3">
                     <h3 class="font-bold text-slate-800 text-sm uppercase tracking-wide flex items-center gap-1.5">📊 Filtros & Configuração</h3>
                     <p class="text-[11px] text-slate-400">Gerenciamento analítico da frota</p>
@@ -181,11 +196,13 @@
                             </div>
                         </div>
                         <!-- Paginação interna e exclusão -->
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
                             <span class="text-xs text-slate-500">{{ currentVehicleIndex + 1 }} de {{ veiculos.length }}</span>
-                            <button @click="navigateVehicle(-1)" class="px-2.5 py-1.5 border border-slate-300 rounded text-xs font-semibold text-slate-600 hover:bg-slate-50" :disabled="currentVehicleIndex === 0">Anterior</button>
-                            <button @click="navigateVehicle(1)" class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold" :disabled="currentVehicleIndex === veiculos.length - 1">Próximo ></button>
-                            <button v-if="canEdit" @click="deleteVehicle(selectedVehicle.placa)" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-semibold">Excluir Veículo</button>
+                            <div class="flex gap-1.5">
+                                <button @click="navigateVehicle(-1)" class="px-2.5 py-1.5 border border-slate-300 rounded text-xs font-semibold text-slate-600 hover:bg-slate-50" :disabled="currentVehicleIndex === 0">Anterior</button>
+                                <button @click="navigateVehicle(1)" class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold" :disabled="currentVehicleIndex === veiculos.length - 1">Próximo ></button>
+                                <button v-if="canEdit" @click="deleteVehicle(selectedVehicle.placa)" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-semibold">Excluir</button>
+                            </div>
                         </div>
                     </div>
 
@@ -315,6 +332,15 @@
                                         <span class="font-bold text-slate-700 block mt-0.5">{{ formatNumberWithDots(getProximaPreventivaKm(selectedVehicle)) }} km</span>
                                     </div>
                                 </div>
+
+                                <!-- Ações Rápidas de WhatsApp no celular -->
+                                <div class="mt-4 pt-3 border-t border-slate-100 md:hidden" v-if="selectedVehicle.emailAlerta">
+                                    <a :href="'https://wa.me/?text=Olá! O veículo de placa ' + selectedVehicle.placa + ' está com a preventiva pendente no sistema Sirtec.'" 
+                                       target="_blank"
+                                       class="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-all shadow-sm">
+                                        <span>💬</span> Cobrar Supervisor (WhatsApp)
+                                    </a>
+                                </div>
                             </div>
 
                             <!-- Fotos e Documentos Diversos -->
@@ -323,8 +349,12 @@
                                 <div>
                                     <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wide mb-2 flex justify-between items-center">
                                         <span>📸 Fotos do Veículo</span>
-                                        <button v-if="canEdit" class="text-xs text-blue-600 font-bold hover:underline" @click="triggerInput('photo-upload')">+ Adicionar Foto</button>
+                                        <button v-if="canEdit" class="text-xs text-blue-600 font-bold hover:underline hidden md:inline" @click="triggerInput('photo-upload')">+ Adicionar Foto</button>
                                     </h4>
+                                    <!-- Botão de toque fácil no celular -->
+                                    <button v-if="canEdit" @click="triggerInput('photo-upload')" class="md:hidden w-full flex items-center justify-center gap-2 py-2.5 mb-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold transition-all border border-blue-200">
+                                        <span>📷</span> Fotografar Hodômetro
+                                    </button>
                                     <input type="file" id="photo-upload" class="hidden" accept="image/*" @change="handleVehiclePhoto">
                                     
                                     <div v-if="!selectedVehicle.fotos || selectedVehicle.fotos.length === 0" class="bg-slate-50 border border-dashed border-slate-200 rounded p-4 text-center text-xs text-slate-400 italic">
@@ -342,8 +372,12 @@
                                 <div class="pt-2 border-t border-slate-100">
                                     <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wide mb-2 flex justify-between items-center">
                                         <span>📄 Termo de Responsabilidade</span>
-                                        <button v-if="canEdit" class="text-xs text-blue-600 font-bold hover:underline" @click="triggerInput('termo-upload')">Anexar</button>
+                                        <button v-if="canEdit" class="text-xs text-blue-600 font-bold hover:underline hidden md:inline" @click="triggerInput('termo-upload')">Anexar</button>
                                     </h4>
+                                    <!-- Botão de toque fácil no celular -->
+                                    <button v-if="canEdit" @click="triggerInput('termo-upload')" class="md:hidden w-full flex items-center justify-center gap-2 py-2.5 mb-2 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold transition-all border border-slate-200">
+                                        <span>📎</span> Anexar Termo
+                                    </button>
                                     <input type="file" id="termo-upload" class="hidden" accept=".pdf,image/*" @change="handleVehicleTermo">
                                     
                                     <div v-if="!selectedVehicle.termo" class="bg-slate-50 border border-dashed border-slate-200 rounded p-4 text-center text-xs text-slate-400 italic">
@@ -396,7 +430,7 @@
                                         </div>
 
                                         <!-- Ações do Documento -->
-                                        <div class="flex gap-4 pt-2 border-t border-slate-200 text-xs font-semibold text-slate-500">
+                                        <div class="flex gap-4 pt-2 border-t border-slate-200 text-xs font-semibold text-slate-500 justify-between md:justify-start">
                                             <button class="hover:text-blue-600" @click="viewDocument(doc)">👁 Visualizar</button>
                                             <button class="hover:text-blue-600" @click="downloadDocument(doc)">📥 Baixar</button>
                                             <button v-if="canEdit" class="hover:text-blue-600" @click="editDocument(doc)">🔄 Atualizar</button>
@@ -424,36 +458,32 @@
                         </div>
 
                         <!-- CARDS DE RESUMO -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div @click="setCardFilter('em-dia')" :class="['cursor-pointer bg-white p-5 rounded-lg border-t-4 shadow-sm hover:shadow-md transition-all text-center', cardFilter === 'em-dia' ? 'border-emerald-500 ring-2 ring-emerald-100' : 'border-emerald-500']">
-                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Laudos em Dia</span>
-                                <div class="text-3xl font-bold text-emerald-600 mt-2">{{ countStatus.emDia }}</div>
-                                <div class="mt-2 text-emerald-500 text-sm">✓</div>
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div @click="setCardFilter('em-dia')" :class="['cursor-pointer bg-white p-4 rounded-lg border-t-4 shadow-sm hover:shadow-md transition-all text-center', cardFilter === 'em-dia' ? 'border-emerald-500 ring-2 ring-emerald-100' : 'border-emerald-500']">
+                                <span class="text-[10px] md:text-xs font-semibold text-slate-500 uppercase tracking-wider">Laudos em Dia</span>
+                                <div class="text-xl md:text-3xl font-bold text-emerald-600 mt-2">{{ countStatus.emDia }}</div>
                             </div>
-                            <div @click="setCardFilter('vencido')" :class="['cursor-pointer bg-white p-5 rounded-lg border-t-4 shadow-sm hover:shadow-md transition-all text-center', cardFilter === 'vencido' ? 'border-red-500 ring-2 ring-red-100' : 'border-red-500']">
-                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Laudos Vencidos</span>
-                                <div class="text-3xl font-bold text-red-600 mt-2">{{ countStatus.vencidos }}</div>
-                                <div class="mt-2 text-red-500 text-sm">⚠</div>
+                            <div @click="setCardFilter('vencido')" :class="['cursor-pointer bg-white p-4 rounded-lg border-t-4 shadow-sm hover:shadow-md transition-all text-center', cardFilter === 'vencido' ? 'border-red-500 ring-2 ring-red-100' : 'border-red-500']">
+                                <span class="text-[10px] md:text-xs font-semibold text-slate-500 uppercase tracking-wider">Laudos Vencidos</span>
+                                <div class="text-xl md:text-3xl font-bold text-red-600 mt-2">{{ countStatus.vencidos }}</div>
                             </div>
-                            <div @click="setCardFilter('proximo')" :class="['cursor-pointer bg-white p-5 rounded-lg border-t-4 shadow-sm hover:shadow-md transition-all text-center', cardFilter === 'proximo' ? 'border-amber-500 ring-2 ring-amber-100' : 'border-amber-500']">
-                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Próximos do Vencimento</span>
-                                <div class="text-3xl font-bold text-amber-500 mt-2">{{ countStatus.proximos }}</div>
-                                <div class="mt-2 text-amber-500 text-sm">🕒</div>
+                            <div @click="setCardFilter('proximo')" :class="['cursor-pointer bg-white p-4 rounded-lg border-t-4 shadow-sm hover:shadow-md transition-all text-center', cardFilter === 'proximo' ? 'border-amber-500 ring-2 ring-amber-100' : 'border-amber-500']">
+                                <span class="text-[10px] md:text-xs font-semibold text-slate-500 uppercase tracking-wider">Próximos do Vencimento</span>
+                                <div class="text-xl md:text-3xl font-bold text-amber-500 mt-2">{{ countStatus.proximos }}</div>
                             </div>
-                            <div @click="setCardFilter('faltante')" :class="['cursor-pointer bg-white p-5 rounded-lg border-t-4 shadow-sm hover:shadow-md transition-all text-center', cardFilter === 'faltante' ? 'border-slate-400 ring-2 ring-slate-100' : 'border-slate-400']">
-                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Laudos Faltantes</span>
-                                <div class="text-3xl font-bold text-slate-600 mt-2">{{ countStatus.faltantes }}</div>
-                                <div class="mt-2 text-slate-400 text-sm">⚠</div>
+                            <div @click="setCardFilter('faltante')" :class="['cursor-pointer bg-white p-4 rounded-lg border-t-4 shadow-sm hover:shadow-md transition-all text-center', cardFilter === 'faltante' ? 'border-slate-400 ring-2 ring-slate-100' : 'border-slate-400']">
+                                <span class="text-[10px] md:text-xs font-semibold text-slate-500 uppercase tracking-wider">Laudos Faltantes</span>
+                                <div class="text-xl md:text-3xl font-bold text-slate-600 mt-2">{{ countStatus.faltantes }}</div>
                             </div>
                         </div>
 
                         <!-- Busca e Filtros -->
                         <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex flex-col md:flex-row gap-3 items-center justify-between">
                             <input v-model="searchQueryLaudo" type="text" placeholder="Buscar por placa, modelo, localização ou tipo..." class="w-full md:max-w-md pl-3 pr-10 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500">
-                            <div class="flex flex-wrap gap-2 justify-end">
-                                <button @click="clearFilters" class="px-3 py-1.5 text-xs font-medium border border-slate-300 rounded hover:bg-slate-50 text-slate-600">Limpar Filtros</button>
-                                <select v-model="selectedContract" class="text-xs border border-slate-300 rounded px-2 py-1.5 uppercase font-bold text-slate-700">
-                                    <option value="">Todos os Contratos</option>
+                            <div class="flex w-full md:w-auto gap-2 justify-end">
+                                <button @click="clearFilters" class="px-3 py-1.5 text-xs font-medium border border-slate-300 rounded hover:bg-slate-50 text-slate-600 flex-1 md:flex-none">Limpar</button>
+                                <select v-model="selectedContract" class="text-xs border border-slate-300 rounded px-2 py-1.5 uppercase font-bold text-slate-700 flex-1 md:flex-none bg-white">
+                                    <option value="">Contratos</option>
                                     <option v-for="c in availableContracts" :key="c" :value="c">{{ c }}</option>
                                 </select>
                             </div>
@@ -461,7 +491,27 @@
 
                         <!-- Lista de Laudos Geral -->
                         <div class="bg-white rounded-lg shadow overflow-hidden border border-slate-200">
-                            <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
+                            <!-- VISÃO MOBILE: CARDS DE LAUDO -->
+                            <div class="block md:hidden divide-y divide-slate-100">
+                                <div v-for="laudo in filteredLaudos" :key="laudo.id" @click="selectVehicleByPlate(laudo.placa)" class="p-4 hover:bg-slate-50 transition-colors cursor-pointer">
+                                    <div class="flex justify-between mb-1.5">
+                                        <span class="font-bold text-slate-900 text-sm">{{ laudo.placa }}</span>
+                                        <span class="text-xs text-slate-500 font-medium uppercase bg-slate-100 px-1.5 py-0.5 rounded">{{ laudo.contrato }}</span>
+                                    </div>
+                                    <div class="text-xs text-slate-600 space-y-1">
+                                        <p><span class="text-slate-400">Modelo:</span> {{ laudo.modelo }}</p>
+                                        <p><span class="text-slate-400">Tipo:</span> {{ laudo.tipoLaudo }}</p>
+                                        <p><span class="text-slate-400">Validade:</span> {{ laudo.validade ? formatDate(laudo.validade) : '—' }}</p>
+                                    </div>
+                                    <div class="flex gap-2 mt-2 items-center">
+                                        <span :class="getStatusBadgeClass(laudo)">{{ getStatusLabel(laudo) }}</span>
+                                        <span v-if="laudo.resultado" :class="getResultadoBadgeClass(laudo.resultado)">{{ laudo.resultado }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- VISÃO DESKTOP -->
+                            <table class="hidden md:table min-w-full divide-y divide-slate-200 text-left text-sm">
                                 <thead class="bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
                                     <tr>
                                         <th class="px-6 py-3">Veículo</th>
@@ -511,21 +561,57 @@
                             </div>
 
                             <!-- Sub-Tabs de Categoria de Veículo (Pesados / Leves) -->
-                            <div class="flex border border-slate-200 bg-white rounded-md p-1 shadow-sm text-xs font-semibold text-slate-600">
-                                <button @click="selectedClassFilter = 'todos'" :class="['px-3 py-1.5 rounded transition-all', selectedClassFilter === 'todos' ? 'bg-blue-600 text-white shadow' : 'hover:bg-slate-50']">Todos</button>
-                                <button @click="selectedClassFilter = 'leves'" :class="['px-3 py-1.5 rounded transition-all', selectedClassFilter === 'leves' ? 'bg-blue-600 text-white shadow' : 'hover:bg-slate-50']">Veículos Leves</button>
-                                <button @click="selectedClassFilter = 'pesados'" :class="['px-3 py-1.5 rounded transition-all', selectedClassFilter === 'pesados' ? 'bg-blue-600 text-white shadow' : 'hover:bg-slate-50']">Veículos Pesados</button>
+                            <div class="flex border border-slate-200 bg-white rounded-md p-1 shadow-sm text-xs font-semibold text-slate-600 w-full md:w-auto justify-around">
+                                <button @click="selectedClassFilter = 'todos'" :class="['px-3 py-1.5 rounded transition-all flex-1 md:flex-none', selectedClassFilter === 'todos' ? 'bg-blue-600 text-white shadow' : 'hover:bg-slate-50']">Todos</button>
+                                <button @click="selectedClassFilter = 'leves'" :class="['px-3 py-1.5 rounded transition-all flex-1 md:flex-none', selectedClassFilter === 'leves' ? 'bg-blue-600 text-white shadow' : 'hover:bg-slate-50']">Leves</button>
+                                <button @click="selectedClassFilter = 'pesados'" :class="['px-3 py-1.5 rounded transition-all flex-1 md:flex-none', selectedClassFilter === 'pesados' ? 'bg-blue-600 text-white shadow' : 'hover:bg-slate-50']">Pesados</button>
                             </div>
 
-                            <button v-if="canEdit" @click="showAddVehicleModal = true" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-semibold">+ Adicionar Veículo</button>
+                            <button v-if="canEdit" @click="showAddVehicleModal = true" class="w-full md:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-semibold">+ Adicionar Veículo</button>
                         </div>
 
                         <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
-                            <input v-model="searchQueryVehicle" type="text" placeholder="Buscar por placa, modelo, marca, contrato, equipe..." class="w-full max-w-md px-3 py-2 text-sm border border-slate-300 rounded focus:outline-none">
+                            <input v-model="searchQueryVehicle" type="text" placeholder="Buscar por placa, modelo, marca, contrato, equipe..." class="w-full max-w-md px-3 py-2 text-sm border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
                         </div>
 
-                        <div class="bg-white rounded-lg shadow border border-slate-200 overflow-x-auto">
-                            <table class="min-w-full divide-y divide-slate-200 text-left text-sm whitespace-nowrap">
+                        <div class="bg-white rounded-lg shadow border border-slate-200 overflow-hidden">
+                            <!-- VISÃO MOBILE: CARDS PARA LISTA DE VEÍCULOS COM INPUT DE KM RÁPIDO -->
+                            <div class="block md:hidden divide-y divide-slate-100">
+                                <div v-for="v in filteredVeiculos" :key="v.placa" class="p-4 hover:bg-slate-50 transition-colors">
+                                    <div @click="selectedVehicle = v" class="cursor-pointer">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <div>
+                                                <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded uppercase">{{ v.marca || 'S/M' }}</span>
+                                                <h3 class="text-base font-bold text-slate-900 mt-1">{{ v.placa }}</h3>
+                                            </div>
+                                            <span :class="['px-2 py-0.5 font-bold rounded text-[10px] uppercase', getPreventiveColorClass(v)]">
+                                                {{ getPreventiveStatusLabel(v) }}
+                                            </span>
+                                        </div>
+                                        <p class="text-xs text-slate-600"><span class="font-semibold text-slate-400">Modelo:</span> {{ v.modelo }}</p>
+                                        <div class="grid grid-cols-2 gap-2 pt-2 text-[11px] text-slate-500">
+                                            <p><span class="font-medium text-slate-400">Base:</span> {{ v.base || '—' }}</p>
+                                            <p><span class="font-medium text-slate-400">Equipe:</span> {{ v.equipe || '—' }}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Atualizador rápido de KM no celular -->
+                                    <div class="mt-3 pt-2 border-t border-dashed border-slate-100 flex items-center justify-between gap-3">
+                                        <span class="text-[11px] font-bold text-slate-400 uppercase">Atualizar KM:</span>
+                                        <div class="flex items-center gap-2 flex-1 max-w-[180px]">
+                                            <input type="number" 
+                                                   inputmode="numeric" 
+                                                   v-model.number="v.kmAtual" 
+                                                   @change="updateVehiclePreventive(v)" 
+                                                   class="w-full px-2 py-1 border border-slate-300 rounded text-xs font-bold text-center text-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-500" 
+                                                   placeholder="Digitar KM">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- VISÃO DESKTOP -->
+                            <table class="hidden md:table min-w-full divide-y divide-slate-200 text-left text-sm whitespace-nowrap">
                                 <thead class="bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
                                     <tr>
                                         <th class="px-6 py-3">Veículo</th>
@@ -575,65 +661,65 @@
                             </div>
                             
                             <!-- Input do Excel protegido -->
-                            <div v-if="canEdit" class="flex items-center gap-3 bg-white p-3 rounded-lg border border-slate-200 shadow-sm text-xs">
+                            <div v-if="canEdit" class="flex items-center gap-3 bg-white p-3 rounded-lg border border-slate-200 shadow-sm text-xs w-full xl:w-auto justify-between">
                                 <div class="font-semibold text-slate-600">Importar Abastecimento:</div>
-                                <input type="file" accept=".xlsx, .xls, .csv" @change="handleExcelImport" class="text-slate-500 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                <input type="file" accept=".xlsx, .xls, .csv" @change="handleExcelImport" class="text-slate-500 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 max-w-[200px]">
                             </div>
                         </div>
 
-                        <!-- CARDS DE RESUMO DE PREVENTIVAS (4 CARDS ESTRUTURADOS E INTELIGENTES) -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <!-- CARDS DE RESUMO DE PREVENTIVAS (Compactados em Grid 2x2 no celular) -->
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                             <!-- Card 1: Compliance Rate com Anel Circular Dinâmico -->
-                            <div @click="setPreventiveCardFilter('em-dia')" :class="['cursor-pointer bg-white p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-emerald-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 duration-300 flex items-center justify-between', preventiveCardFilter === 'em-dia' ? 'ring-4 ring-emerald-100' : '']">
+                            <div @click="setPreventiveCardFilter('em-dia')" :class="['cursor-pointer bg-white p-4 md:p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-emerald-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 duration-300 flex items-center justify-between', preventiveCardFilter === 'em-dia' ? 'ring-4 ring-emerald-100' : '']">
                                 <div>
-                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Adesão da Frota</span>
-                                    <div class="text-3xl font-black text-slate-800 mt-2">{{ compliancePercentage }}%</div>
-                                    <p class="text-[10px] text-emerald-600 mt-2 font-bold">{{ countPreventive.emDia }} de {{ totalPreventiveCount }} em dia</p>
+                                    <span class="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-wider block">Adesão</span>
+                                    <div class="text-xl md:text-3xl font-black text-slate-800 mt-1">{{ compliancePercentage }}%</div>
+                                    <p class="text-[8px] md:text-[10px] text-emerald-600 mt-1.5 font-bold">{{ countPreventive.emDia }}/{{ totalPreventiveCount }} OK</p>
                                 </div>
                                 <!-- Anel de Progresso Circular SVG -->
-                                <div class="relative h-14 w-14 shrink-0 flex items-center justify-center">
+                                <div class="relative h-10 w-10 md:h-14 md:w-14 shrink-0 flex items-center justify-center">
                                     <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                                         <path class="text-slate-100" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                                         <path class="text-emerald-500 transition-all duration-500" stroke-dasharray="100" :stroke-dasharray="compliancePercentage + ', 100'" stroke-width="3" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                                     </svg>
-                                    <span class="absolute text-[10px] font-black text-slate-600">{{ compliancePercentage }}%</span>
+                                    <span class="absolute text-[8px] md:text-[10px] font-black text-slate-600">{{ compliancePercentage }}%</span>
                                 </div>
                             </div>
 
                             <!-- Card 2: Atenção -->
-                            <div @click="setPreventiveCardFilter('atencao')" :class="['cursor-pointer bg-white p-6 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-amber-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 duration-300', preventiveCardFilter === 'atencao' ? 'ring-4 ring-amber-100' : '']">
+                            <div @click="setPreventiveCardFilter('atencao')" :class="['cursor-pointer bg-white p-4 md:p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-amber-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 duration-300 flex flex-col justify-between', preventiveCardFilter === 'atencao' ? 'ring-4 ring-amber-100' : '']">
                                 <div class="flex justify-between items-start">
-                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Atenção Crítica</span>
-                                    <span class="text-amber-500 p-1 bg-amber-50 rounded-lg">
-                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                    <span class="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-wider block">Atenção</span>
+                                    <span class="text-amber-500 p-0.5 bg-amber-50 rounded">
+                                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                                     </span>
                                 </div>
-                                <div class="text-3xl font-black text-slate-800 mt-2">{{ countPreventive.atencao }}</div>
-                                <p class="text-[10px] text-slate-400 mt-2 font-semibold">Menos de 1.000 km restantes</p>
+                                <div class="text-xl md:text-3xl font-black text-slate-800 mt-1">{{ countPreventive.atencao }}</div>
+                                <p class="text-[8px] md:text-[10px] text-slate-400 mt-1.5 font-semibold">&lt; 1.000 km</p>
                             </div>
 
                             <!-- Card 3: Atrasados -->
-                            <div @click="setPreventiveCardFilter('vencido')" :class="['cursor-pointer bg-white p-6 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-red-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 duration-300', preventiveCardFilter === 'vencido' ? 'ring-4 ring-red-100' : '']">
+                            <div @click="setPreventiveCardFilter('vencido')" :class="['cursor-pointer bg-white p-4 md:p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-red-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 duration-300 flex flex-col justify-between', preventiveCardFilter === 'vencido' ? 'ring-4 ring-red-100' : '']">
                                 <div class="flex justify-between items-start">
-                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Atrasados / Excedidos</span>
-                                    <span class="text-red-500 p-1 bg-red-50 rounded-lg">
-                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    <span class="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-wider block">Atrasados</span>
+                                    <span class="text-red-500 p-0.5 bg-red-50 rounded animate-pulse">
+                                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                     </span>
                                 </div>
-                                <div class="text-3xl font-black text-slate-800 mt-2">{{ countPreventive.atrasados }}</div>
-                                <p class="text-[10px] text-slate-400 mt-2 font-semibold">Manutenção pendente imediata</p>
+                                <div class="text-xl md:text-3xl font-black text-slate-800 mt-1">{{ countPreventive.atrasados }}</div>
+                                <p class="text-[8px] md:text-[10px] text-slate-400 mt-1.5 font-semibold">Excederam o limite</p>
                             </div>
 
                             <!-- Card 4: Orçamento Estimado Projetado -->
-                            <div class="bg-white p-6 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-blue-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 duration-300">
+                            <div class="bg-white p-4 md:p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-blue-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] duration-300 flex flex-col justify-between">
                                 <div class="flex justify-between items-start">
-                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Custo de Correção</span>
-                                    <span class="text-blue-500 p-1 bg-blue-50 rounded-lg">
-                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    <span class="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-wider block">Est. Correção</span>
+                                    <span class="text-blue-500 p-0.5 bg-blue-50 rounded">
+                                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                     </span>
                                 </div>
-                                <div class="text-2xl font-black text-slate-800 mt-2">R$ {{ formatNumberWithDots(projectedCost) }}</div>
-                                <p class="text-[10px] text-slate-400 mt-3 font-semibold">Orçamento estimado para regularização</p>
+                                <div class="text-sm md:text-2xl font-black text-slate-800 mt-1">R$ {{ formatNumberWithDots(projectedCost) }}</div>
+                                <p class="text-[8px] md:text-[10px] text-slate-400 mt-1.5 font-semibold">Manutenção pendente</p>
                             </div>
                         </div>
 
@@ -692,12 +778,12 @@
                                 <div class="text-xs text-blue-700">
                                     <strong>Gestão de Frota:</strong> Dispare alertas eletrônicos automáticos de preventiva ou extraia toda a tabela de dados em planilha de Excel.
                                 </div>
-                                <div class="flex flex-wrap gap-2">
-                                    <button @click="exportPreventiveReport" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold shadow-sm flex items-center gap-1.5">
-                                        📥 Exportar Relatório (Excel)
+                                <div class="flex flex-wrap gap-2 w-full md:w-auto">
+                                    <button @click="exportPreventiveReport" class="flex-1 md:flex-none px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm flex items-center justify-center gap-1.5">
+                                        📥 Exportar Planilha
                                     </button>
-                                    <button v-if="canEdit" @click="sendAlertEmails" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-bold shadow-sm flex items-center gap-1.5">
-                                        ✉️ Disparar Alertas de Preventiva
+                                    <button v-if="canEdit" @click="sendAlertEmails" class="flex-1 md:flex-none px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-sm flex items-center justify-center gap-1.5">
+                                        ✉️ Alertar Responsáveis
                                     </button>
                                 </div>
                             </div>
@@ -716,7 +802,7 @@
 
                         <!-- Tabela de Controle de Preventiva com Barra de Busca Local integrada no Cabeçalho -->
                         <div class="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden animate-fade-in">
-                            <!-- BARRA DE BUSCA LOCAL (Marcado em Vermelho) -->
+                            <!-- BARRA DE BUSCA LOCAL -->
                             <div class="bg-white px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3">
                                 <input v-model="searchQueryPreventive" type="text" placeholder="🔍 Buscar por placa, modelo ou operação..." class="w-full max-w-sm px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium text-slate-700">
                                 <div class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
@@ -754,7 +840,7 @@
                                                     <span :class="['font-black', getKmRestanteColor(v)]">
                                                         {{ getKmFaltanteLabel(v) }}
                                                     </span>
-                                                    <!-- Barra de Progresso de manutenção (Preenche de acordo com o desgaste de 10.000 KM) -->
+                                                    <!-- Barra de Progresso de manutenção -->
                                                     <div v-if="v.ultimaPreventivaKm" class="w-24 bg-slate-100 rounded-full h-1.5 overflow-hidden">
                                                         <div :class="['h-full rounded-full transition-all', getPreventiveStatus(v) === 'vencido' ? 'bg-red-500 w-full' : getPreventiveStatus(v) === 'atencao' ? 'bg-amber-500' : 'bg-emerald-500']"
                                                              :style="{ width: Math.min(100, (getKmRodados(v) / 10000) * 100) + '%' }">
@@ -763,7 +849,7 @@
                                                 </div>
                                             </td>
 
-                                            <!-- Badge Status (Com Luzes de LED Pulsantes Neon) -->
+                                            <!-- Badge Status -->
                                             <td class="px-5 py-4 text-center">
                                                 <div class="flex items-center gap-2 justify-center">
                                                     <span class="relative flex h-2 w-2">
@@ -780,7 +866,7 @@
 
                                             <!-- Input Manual de KM da última preventiva (ADMIN/DONO) -->
                                             <td class="px-5 py-4">
-                                                <input v-if="canEdit" type="number" v-model.number="v.ultimaPreventivaKm" @change="updateVehiclePreventive(v)" class="w-24 px-1.5 py-1 border rounded text-xs text-center font-semibold text-slate-700" placeholder="Definir KM">
+                                                <input v-if="canEdit" type="number" inputmode="numeric" v-model.number="v.ultimaPreventivaKm" @change="updateVehiclePreventive(v)" class="w-24 px-1.5 py-1 border rounded text-xs text-center font-semibold text-slate-700" placeholder="Definir KM">
                                                 <span v-else class="font-semibold text-slate-700">{{ v.ultimaPreventivaKm ? formatNumberWithDots(v.ultimaPreventivaKm) + ' km' : '—' }}</span>
                                             </td>
 
@@ -849,6 +935,22 @@
         </main>
     </div>
 
+    <!-- MENU INFERIOR FIXO (Apenas exibido no Celular para navegação com o dedão) -->
+    <div v-if="logged" class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 flex justify-around py-3 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+        <button @click="currentTab = 'laudos'; selectedVehicle = null" :class="['flex flex-col items-center gap-1 transition-colors', currentTab === 'laudos' ? 'text-blue-600 font-bold' : 'text-slate-400']">
+            <span class="text-xl">📄</span>
+            <span class="text-[10px] tracking-tight">Laudos</span>
+        </button>
+        <button @click="currentTab = 'veiculos'; selectedVehicle = null" :class="['flex flex-col items-center gap-1 transition-colors', currentTab === 'veiculos' ? 'text-blue-600 font-bold' : 'text-slate-400']">
+            <span class="text-xl">🚗</span>
+            <span class="text-[10px] tracking-tight">Frota</span>
+        </button>
+        <button @click="currentTab = 'preventivas'; selectedVehicle = null" :class="['flex flex-col items-center gap-1 transition-colors', currentTab === 'preventivas' ? 'text-blue-600 font-bold' : 'text-slate-400']">
+            <span class="text-xl">🛡️</span>
+            <span class="text-[10px] tracking-tight">Preventivas</span>
+        </button>
+    </div>
+
     <!-- MODAL: CADASTRAR NOVO USUÁRIO -->
     <div v-if="showAddUserModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
         <div class="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden">
@@ -893,11 +995,11 @@
             </div>
             
             <form @submit.prevent="saveVehicleDocument" class="p-6 space-y-4">
-                <!-- Se for uma atualização (Igual ao seu Print) -->
+                <!-- Se for uma atualização -->
                 <div v-if="newDocForm.id" class="space-y-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 uppercase">Nova Data de Validade</label>
-                        <input v-model="newDocForm.validade" type="date" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                        <input v-model="newDocForm.validade" type="date" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm bg-white">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 uppercase">Novo Arquivo (substitui o anterior)</label>
@@ -905,7 +1007,7 @@
                     </div>
                 </div>
 
-                <!-- Se for uma nova inserção (Padrão) -->
+                <!-- Se for uma nova inserção -->
                 <div v-else class="space-y-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 uppercase">Tipo de Documento *</label>
@@ -935,7 +1037,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 uppercase">Data de Validade</label>
-                        <input v-model="newDocForm.validade" type="date" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                        <input v-model="newDocForm.validade" type="date" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm bg-white">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 uppercase">Arquivo (PDF, Imagem)</label>
@@ -1013,7 +1115,7 @@
             <form @submit.prevent="saveSpecEdit" class="p-6 space-y-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 uppercase">Combustível</label>
-                    <select v-model="editVehicleForm.combustivel" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                    <select v-model="editVehicleForm.combustivel" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm bg-white">
                         <option value="Diesel">Diesel</option>
                         <option value="Gasolina">Gasolina</option>
                         <option value="Etanol">Etanol</option>
@@ -1026,7 +1128,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 uppercase">Rastreador</label>
-                    <select v-model="editVehicleForm.rastreador" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm">
+                    <select v-model="editVehicleForm.rastreador" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm bg-white">
                         <option value="Sim">Sim</option>
                         <option value="Não">Não</option>
                     </select>
@@ -1155,6 +1257,9 @@
             const selectedClassFilter = ref('todos');
             const preventiveCardFilter = ref(null);
             const searchQueryPreventive = ref('');
+            
+            // Controle de visibilidade de painel de filtros para Mobile
+            const showMobileFilters = ref(false);
 
             // Modelos de Formulários
             const editVehicleForm = ref({});
@@ -2480,7 +2585,8 @@
                 setCardFilter, clearFilters, formatFilterName, getStatusLabel, getStatusBadgeClass, getResultadoBadgeClass, formatDate,
                 formatNumberWithDots,
                 selectedClassFilter, preventiveCardFilter, searchQueryPreventive, filteredPreventivesForTable, setPreventiveCardFilter, exportPreventiveReport,
-                compliancePercentage, totalPreventiveCount, regionalComplianceRanking
+                compliancePercentage, totalPreventiveCount, regionalComplianceRanking,
+                showMobileFilters
             };
         }
     }).mount('#app');
