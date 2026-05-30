@@ -575,37 +575,49 @@
                         </div>
 
                         <div class="bg-white rounded-lg shadow border border-slate-200 overflow-hidden">
-                            <!-- VISÃO MOBILE: CARDS PARA LISTA DE VEÍCULOS COM INPUT DE KM RÁPIDO -->
+                            <!-- VISÃO MOBILE: CARDS DA LISTA DE VEÍCULOS OTIMIZADOS (PLACA + EQUIPE + STATUS ATIVO/INATIVO) -->
                             <div class="block md:hidden divide-y divide-slate-100">
-                                <div v-for="v in filteredVeiculos" :key="v.placa" class="p-4 hover:bg-slate-50 transition-colors">
-                                    <div @click="selectedVehicle = v" class="cursor-pointer">
-                                        <div class="flex justify-between items-start mb-2">
-                                            <div>
-                                                <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded uppercase">{{ v.marca || 'S/M' }}</span>
-                                                <h3 class="text-base font-bold text-slate-900 mt-1">{{ v.placa }}</h3>
-                                            </div>
-                                            <span :class="['px-2 py-0.5 font-bold rounded text-[10px] uppercase', getPreventiveColorClass(v)]">
+                                <div v-for="v in filteredVeiculos" :key="v.placa" @click="selectedVehicle = v" class="p-5 hover:bg-slate-50 active:bg-slate-100 transition-colors cursor-pointer relative">
+                                    <div class="flex justify-between items-start mb-2.5">
+                                        <div>
+                                            <!-- Marca -->
+                                            <span class="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded uppercase tracking-wider">{{ v.marca || 'S/M' }}</span>
+                                            <!-- Placa -->
+                                            <h3 class="text-xl font-black text-slate-950 mt-1 tracking-tight">{{ v.placa }}</h3>
+                                        </div>
+                                        
+                                        <!-- Statuses Alinhados à Direita -->
+                                        <div class="flex flex-col items-end gap-1.5">
+                                            <!-- Status de Atividade (Filtro 50 Dias de Abastecimento) -->
+                                            <span :class="['px-2 py-0.5 rounded-full font-black text-[9px] uppercase tracking-wider border', isVehicleActive(v) ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200']">
+                                                ● {{ isVehicleActive(v) ? 'Ativo' : 'Inativo' }}
+                                            </span>
+                                            <!-- Status da Preventiva -->
+                                            <span :class="['px-2 py-0.5 font-bold rounded text-[9px] uppercase border', getPreventiveColorClass(v).replace('bg-', 'bg-').replace('text-', 'text-') + ' border-slate-200']">
                                                 {{ getPreventiveStatusLabel(v) }}
                                             </span>
                                         </div>
-                                        <p class="text-xs text-slate-600"><span class="font-semibold text-slate-400">Modelo:</span> {{ v.modelo }}</p>
-                                        <div class="grid grid-cols-2 gap-2 pt-2 text-[11px] text-slate-500">
-                                            <p><span class="font-medium text-slate-400">Base:</span> {{ v.base || '—' }}</p>
-                                            <p><span class="font-medium text-slate-400">Equipe:</span> {{ v.equipe || '—' }}</p>
-                                        </div>
                                     </div>
-                                    
-                                    <!-- Atualizador rápido de KM no celular -->
-                                    <div class="mt-3 pt-2 border-t border-dashed border-slate-100 flex items-center justify-between gap-3">
-                                        <span class="text-[11px] font-bold text-slate-400 uppercase">Atualizar KM:</span>
-                                        <div class="flex items-center gap-2 flex-1 max-w-[180px]">
-                                            <input type="number" 
-                                                   inputmode="numeric" 
-                                                   v-model.number="v.kmAtual" 
-                                                   @change="updateVehiclePreventive(v)" 
-                                                   class="w-full px-2 py-1 border border-slate-300 rounded text-xs font-bold text-center text-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-500" 
-                                                   placeholder="Digitar KM">
-                                        </div>
+
+                                    <!-- Detalhes Focados -->
+                                    <div class="text-xs text-slate-600 space-y-1.5 mt-3">
+                                        <p><span class="font-semibold text-slate-400">Modelo:</span> {{ v.modelo }}</p>
+                                        <p><span class="font-semibold text-slate-400">Equipe:</span> <span class="font-bold text-slate-800 uppercase">{{ v.equipe || 'Não definida' }}</span></p>
+                                        
+                                        <!-- Data de Abastecimento & Tempo Decorrido -->
+                                        <p class="text-[11px] text-slate-500">
+                                            <span class="font-semibold text-slate-400">Último Abastecimento:</span> 
+                                            <span class="font-medium text-slate-700">{{ v.dataUltimoAbastecimento || 'Sem registro' }}</span>
+                                            <span v-if="getDaysSinceLastAbastecimento(v) !== null" :class="['font-semibold ml-1', getDaysSinceLastAbastecimento(v) > 50 ? 'text-red-500' : 'text-slate-400']">
+                                                (há {{ getDaysSinceLastAbastecimento(v) }} dias)
+                                            </span>
+                                        </p>
+                                    </div>
+
+                                    <!-- Indicador Visual Interativo de Clique para abrir os documentos -->
+                                    <div class="mt-4 flex items-center justify-between text-xs font-semibold text-blue-600 bg-blue-50/50 p-2.5 rounded-lg border border-blue-100/50">
+                                        <span>📂 Ver Documentos e Laudos</span>
+                                        <span>→</span>
                                     </div>
                                 </div>
                             </div>
@@ -614,6 +626,7 @@
                             <table class="hidden md:table min-w-full divide-y divide-slate-200 text-left text-sm whitespace-nowrap">
                                 <thead class="bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
                                     <tr>
+                                        <th class="px-6 py-3">Atividade</th>
                                         <th class="px-6 py-3">Veículo</th>
                                         <th class="px-6 py-3">Marca</th>
                                         <th class="px-6 py-3">Ano</th>
@@ -628,6 +641,12 @@
                                 </thead>
                                 <tbody class="divide-y divide-slate-100">
                                     <tr v-for="v in filteredVeiculos" :key="v.placa" class="hover:bg-slate-50 cursor-pointer" @click="selectedVehicle = v">
+                                        <!-- Status de Atividade no Desktop -->
+                                        <td class="px-6 py-4">
+                                            <span :class="['px-2 py-0.5 rounded-full font-bold text-[10px] uppercase border', isVehicleActive(v) ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200']">
+                                                {{ isVehicleActive(v) ? 'Ativo' : 'Inativo' }}
+                                            </span>
+                                        </td>
                                         <td class="px-6 py-4">
                                             <div class="font-bold text-slate-900">{{ v.placa }}</div>
                                             <div class="text-xs text-slate-500">{{ v.modelo }}</div>
@@ -723,28 +742,28 @@
                             </div>
                         </div>
 
-                        <!-- SEÇÃO DE GRÁFICOS CORPORATIVOS INTEGRADOS (ESTILO DASHBOARD BI COM TRÊS GRÁFICOS ANALÍTICOS) -->
+                        <!-- SEÇÃO DE GRÁFICOS CORPORATIVOS INTEGRADOS -->
                         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                            <!-- Gráfico 1: Distribuição Geral (Rosca interativa) -->
+                            <!-- Gráfico 1 -->
                             <div class="lg:col-span-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-between">
                                 <h4 class="text-xs font-bold text-slate-600 uppercase mb-4 tracking-wider">📈 Distribuição Geral de Preventivas</h4>
                                 <div id="chartStatus" class="flex justify-center my-auto cursor-pointer"></div>
                             </div>
 
-                            <!-- Gráfico 2: Situação Regional (Horizontal Grouped Bar) -->
+                            <!-- Gráfico 2 -->
                             <div class="lg:col-span-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-between">
                                 <h4 class="text-xs font-bold text-slate-600 uppercase mb-4 tracking-wider">🏢 Situação por Regional</h4>
                                 <div id="chartRegional"></div>
                             </div>
 
-                            <!-- Gráfico 3: Curva de Desgaste de Hodômetro (Spline Area para enriquecer dados) -->
+                            <!-- Gráfico 3 -->
                             <div class="lg:col-span-4 bg-white p-5 rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col justify-between">
                                 <h4 class="text-xs font-bold text-slate-600 uppercase mb-4 tracking-wider">📊 Curva de Desgaste (KM Frota)</h4>
                                 <div id="chartDistribution"></div>
                             </div>
                         </div>
 
-                        <!-- TESTE 3: PAINEL DE RANKING DE REGIONAIS COM BARRAS DE PROGRESSO HORIZONTAIS -->
+                        <!-- TESTE 3: PAINEL DE RANKING -->
                         <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-4 animate-fade-in">
                             <div class="border-b border-slate-100 pb-3 flex justify-between items-center">
                                 <div>
@@ -772,7 +791,7 @@
                             </div>
                         </div>
 
-                        <!-- central de decisões / Alertas críticos do gestor (Inclusão profissional) -->
+                        <!-- central de decisões -->
                         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                             <div class="lg:col-span-8 bg-blue-50 p-5 rounded-2xl border border-blue-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                                 <div class="text-xs text-blue-700">
@@ -1622,6 +1641,36 @@
                 if (status === 'vencido') return 'text-red-600';
                 if (status === 'atencao') return 'text-amber-500';
                 return 'text-emerald-600';
+            };
+
+            // REGRA DE ATIVIDADE: Retorna dias decorridos do último abastecimento
+            const getDaysSinceLastAbastecimento = (v) => {
+                if (!v || !v.dataUltimoAbastecimento) return null;
+                try {
+                    const datePart = v.dataUltimoAbastecimento.split(' ')[0];
+                    const parts = datePart.split('/');
+                    if (parts.length === 3) {
+                        const day = parseInt(parts[0], 10);
+                        const month = parseInt(parts[1], 10) - 1;
+                        const year = parseInt(parts[2], 10);
+                        const supplyDate = new Date(year, month, day);
+                        const today = new Date();
+                        today.setHours(0,0,0,0);
+                        const diffTime = today - supplyDate;
+                        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                        return diffDays >= 0 ? diffDays : 0;
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+                return null;
+            };
+
+            // Retorna se o veículo está ativo (Menos ou igual a 50 dias)
+            const isVehicleActive = (v) => {
+                const days = getDaysSinceLastAbastecimento(v);
+                if (days === null) return false; // Inativo se nunca abasteceu
+                return days <= 50;
             };
 
             // Filtro dinâmico para separar Veículos Leves e Pesados
@@ -2586,7 +2635,8 @@
                 formatNumberWithDots,
                 selectedClassFilter, preventiveCardFilter, searchQueryPreventive, filteredPreventivesForTable, setPreventiveCardFilter, exportPreventiveReport,
                 compliancePercentage, totalPreventiveCount, regionalComplianceRanking,
-                showMobileFilters
+                showMobileFilters,
+                getDaysSinceLastAbastecimento, isVehicleActive
             };
         }
     }).mount('#app');
