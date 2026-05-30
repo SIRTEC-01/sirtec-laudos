@@ -174,7 +174,7 @@
                 <button @click="clearFilters" class="w-full mt-2 py-2 text-xs font-semibold border border-slate-300 rounded hover:bg-slate-50 text-slate-600 transition-colors">
                     Limpar Filtros
                 </button>
-            </aside>
+            </</aside>
 
             <!-- CONTEÚDO PRINCIPAL (Tabelas, Detalhes ou Dashboard) -->
             <div class="flex-1 min-w-0 space-y-6">
@@ -575,7 +575,7 @@
                         </div>
 
                         <div class="bg-white rounded-lg shadow border border-slate-200 overflow-hidden">
-                            <!-- VISÃO MOBILE: CARDS DA LISTA DE VEÍCULOS OTIMIZADOS (PLACA + EQUIPE + STATUS ATIVO/INATIVO) -->
+                            <!-- VISÃO MOBILE: CARDS DA LISTA DE VEÍCULOS OTIMIZADOS (PLACA + EQUIPE + STATUS DE ATIVIDADE APENAS) -->
                             <div class="block md:hidden divide-y divide-slate-100">
                                 <div v-for="v in filteredVeiculos" :key="v.placa" @click="selectedVehicle = v" class="p-5 hover:bg-slate-50 active:bg-slate-100 transition-colors cursor-pointer relative">
                                     <div class="flex justify-between items-start mb-2.5">
@@ -586,15 +586,10 @@
                                             <h3 class="text-xl font-black text-slate-950 mt-1 tracking-tight">{{ v.placa }}</h3>
                                         </div>
                                         
-                                        <!-- Statuses Alinhados à Direita -->
+                                        <!-- Status de Atividade à Direita -->
                                         <div class="flex flex-col items-end gap-1.5">
-                                            <!-- Status de Atividade (Filtro 50 Dias de Abastecimento) -->
                                             <span :class="['px-2 py-0.5 rounded-full font-black text-[9px] uppercase tracking-wider border', isVehicleActive(v) ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200']">
                                                 ● {{ isVehicleActive(v) ? 'Ativo' : 'Inativo' }}
-                                            </span>
-                                            <!-- Status da Preventiva -->
-                                            <span :class="['px-2 py-0.5 font-bold rounded text-[9px] uppercase border', getPreventiveColorClass(v).replace('bg-', 'bg-').replace('text-', 'text-') + ' border-slate-200']">
-                                                {{ getPreventiveStatusLabel(v) }}
                                             </span>
                                         </div>
                                     </div>
@@ -686,7 +681,7 @@
                             </div>
                         </div>
 
-                        <!-- CARDS DE RESUMO DE PREVENTIVAS (Compactados em Grid 2x2 no celular) -->
+                        <!-- CARDS DE RESUMO DE PREVENTIVAS (Retornado para o padrão original bg-white) -->
                         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                             <!-- Card 1: Compliance Rate com Anel Circular Dinâmico -->
                             <div @click="setPreventiveCardFilter('em-dia')" :class="['cursor-pointer bg-white p-4 md:p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-emerald-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 duration-300 flex items-center justify-between', preventiveCardFilter === 'em-dia' ? 'ring-4 ring-emerald-100' : '']">
@@ -705,28 +700,28 @@
                                 </div>
                             </div>
 
-                            <!-- Card 2: Atenção (TESTE DE ATUALIZAÇÃO: COR ALTERADA PARA AMARELO SUAVE) -->
-                            <div @click="setPreventiveCardFilter('atencao')" :class="['cursor-pointer bg-amber-50/70 p-4 md:p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-amber-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 duration-300 flex flex-col justify-between', preventiveCardFilter === 'atencao' ? 'ring-4 ring-amber-100' : '']">
+                            <!-- Card 2: Atenção (Retornado para o padrão original bg-white) -->
+                            <div @click="setPreventiveCardFilter('atencao')" :class="['cursor-pointer bg-white p-4 md:p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-amber-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 duration-300 flex flex-col justify-between', preventiveCardFilter === 'atencao' ? 'ring-4 ring-amber-100' : '']">
                                 <div class="flex justify-between items-start">
                                     <span class="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-wider block">Atenção</span>
-                                    <span class="text-amber-500 p-0.5 bg-amber-100/60 rounded">
+                                    <span class="text-amber-500 p-0.5 bg-amber-50 rounded">
                                         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                                     </span>
                                 </div>
                                 <div class="text-xl md:text-3xl font-black text-slate-800 mt-1">{{ countPreventive.atencao }}</div>
-                                <p class="text-[8px] md:text-[10px] text-slate-500 mt-1.5 font-semibold">&lt; 1.000 km</p>
+                                <p class="text-[8px] md:text-[10px] text-slate-400 mt-1.5 font-semibold">&lt; 1.000 km</p>
                             </div>
 
-                            <!-- Card 3: Atrasados (TESTE DE ATUALIZAÇÃO: COR ALTERADA PARA VERMELHO SUAVE) -->
-                            <div @click="setPreventiveCardFilter('vencido')" :class="['cursor-pointer bg-red-50/70 p-4 md:p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-red-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 duration-300 flex flex-col justify-between', preventiveCardFilter === 'vencido' ? 'ring-4 ring-red-100' : '']">
+                            <!-- Card 3: Atrasados (Retornado para o padrão original bg-white) -->
+                            <div @click="setPreventiveCardFilter('vencido')" :class="['cursor-pointer bg-white p-4 md:p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-red-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 duration-300 flex flex-col justify-between', preventiveCardFilter === 'vencido' ? 'ring-4 ring-red-100' : '']">
                                 <div class="flex justify-between items-start">
                                     <span class="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-wider block">Atrasados</span>
-                                    <span class="text-red-500 p-0.5 bg-red-100/60 rounded animate-pulse">
+                                    <span class="text-red-500 p-0.5 bg-red-50 rounded animate-pulse">
                                         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                     </span>
                                 </div>
                                 <div class="text-xl md:text-3xl font-black text-slate-800 mt-1">{{ countPreventive.atrasados }}</div>
-                                <p class="text-[8px] md:text-[10px] text-slate-500 mt-1.5 font-semibold">Excederam o limite</p>
+                                <p class="text-[8px] md:text-[10px] text-slate-400 mt-1.5 font-semibold">Excederam o limite</p>
                             </div>
 
                             <!-- Card 4: Orçamento Estimado Projetado -->
