@@ -664,7 +664,7 @@
                         </div>
                     </div>
 
-                    <!-- TAB: PREVENTIVAS -->
+                    <!-- TAB: PREVENTIVAS (DASHBOARD CORPORATIVO DE MANUTENÇÃO PREVENTIVA) -->
                     <div v-if="currentTab === 'preventivas'" class="space-y-6">
                         <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                             <div>
@@ -681,15 +681,16 @@
                             </div>
                         </div>
 
-                        <!-- CARDS DE RESUMO DE PREVENTIVAS -->
+                        <!-- CARDS DE RESUMO DE PREVENTIVAS (Com as cores brancas originais reestabelecidas) -->
                         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                            <!-- Card 1 -->
+                            <!-- Card 1: Compliance Rate com Anel Circular Dinâmico -->
                             <div @click="setPreventiveCardFilter('em-dia')" :class="['cursor-pointer bg-white p-4 md:p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-emerald-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 duration-300 flex items-center justify-between', preventiveCardFilter === 'em-dia' ? 'ring-4 ring-emerald-100' : '']">
                                 <div>
                                     <span class="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-wider block">Adesão</span>
                                     <div class="text-xl md:text-3xl font-black text-slate-800 mt-1">{{ compliancePercentage }}%</div>
                                     <p class="text-[8px] md:text-[10px] text-emerald-600 mt-1.5 font-bold">{{ countPreventive.emDia }}/{{ totalPreventiveCount }} OK</p>
                                 </div>
+                                <!-- Anel de Progresso Circular SVG -->
                                 <div class="relative h-10 w-10 md:h-14 md:w-14 shrink-0 flex items-center justify-center">
                                     <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                                         <path class="text-slate-100" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
@@ -699,7 +700,7 @@
                                 </div>
                             </div>
 
-                            <!-- Card 2 -->
+                            <!-- Card 2: Atenção (Retornado para o padrão original bg-white) -->
                             <div @click="setPreventiveCardFilter('atencao')" :class="['cursor-pointer bg-white p-4 md:p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-amber-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 duration-300 flex flex-col justify-between', preventiveCardFilter === 'atencao' ? 'ring-4 ring-amber-100' : '']">
                                 <div class="flex justify-between items-start">
                                     <span class="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-wider block">Atenção</span>
@@ -711,7 +712,7 @@
                                 <p class="text-[8px] md:text-[10px] text-slate-400 mt-1.5 font-semibold">&lt; 1.000 km</p>
                             </div>
 
-                            <!-- Card 3 -->
+                            <!-- Card 3: Atrasados (Retornado para o padrão original bg-white) -->
                             <div @click="setPreventiveCardFilter('vencido')" :class="['cursor-pointer bg-white p-4 md:p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-red-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:-translate-y-0.5 duration-300 flex flex-col justify-between', preventiveCardFilter === 'vencido' ? 'ring-4 ring-red-100' : '']">
                                 <div class="flex justify-between items-start">
                                     <span class="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-wider block">Atrasados</span>
@@ -723,16 +724,23 @@
                                 <p class="text-[8px] md:text-[10px] text-slate-400 mt-1.5 font-semibold">Excederam o limite</p>
                             </div>
 
-                            <!-- Card 4 -->
+                            <!-- Card 4: NOVO CARD HÍBRIDO (FROTA INATIVA E ATRASO MÉDIO) -->
                             <div class="bg-white p-4 md:p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-l-[6px] border-blue-500 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] duration-300 flex flex-col justify-between">
                                 <div class="flex justify-between items-start">
-                                    <span class="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-wider block">Est. Correção</span>
+                                    <span class="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-wider block">Frota Inativa</span>
                                     <span class="text-blue-500 p-0.5 bg-blue-50 rounded">
-                                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                        </svg>
                                     </span>
                                 </div>
-                                <div class="text-sm md:text-2xl font-black text-slate-800 mt-1">R$ {{ formatNumberWithDots(projectedCost) }}</div>
-                                <p class="text-[8px] md:text-[10px] text-slate-400 mt-1.5 font-semibold">Manutenção pendente</p>
+                                <div class="text-xl md:text-3xl font-black text-slate-800 mt-1">
+                                    {{ countInactiveVehicles }} <span class="text-xs font-normal text-slate-400">un</span>
+                                </div>
+                                <p class="text-[8px] md:text-[10px] text-slate-400 mt-1.5 font-semibold">
+                                    Sem abastecer a 50+ dias. <br>
+                                    <span class="text-red-500 font-bold">Atraso médio: +{{ formatNumberWithDots(averageOverdueKm) }} km</span>
+                                </p>
                             </div>
                         </div>
 
@@ -1385,7 +1393,7 @@
                         legend: { position: 'top' },
                         tooltip: {
                             y: {
-                                formatter: (val) => `${val} veículos`
+                                formatter: (val) => `${val} vehicles`
                             }
                         }
                     };
@@ -1666,6 +1674,23 @@
                 if (days === null) return false; // Inativo se nunca abasteceu
                 return days <= 50;
             };
+
+            // Contagem dinâmica de veículos inativos
+            const countInactiveVehicles = computed(() => {
+                if (!veiculos.value) return 0;
+                return veiculos.value.filter(v => !isVehicleActive(v)).length;
+            });
+
+            // Média de atraso dos veículos vencidos em KM
+            const averageOverdueKm = computed(() => {
+                const lateVehicles = veiculos.value.filter(v => getPreventiveStatus(v) === 'vencido');
+                if (lateVehicles.length === 0) return 0;
+                const totalOverdue = lateVehicles.reduce((sum, v) => {
+                    const faltam = getKmFaltante(v);
+                    return sum + (faltam < 0 ? Math.abs(faltam) : 0);
+                }, 0);
+                return Math.round(totalOverdue / lateVehicles.length);
+            });
 
             // Filtro dinâmico para separar Veículos Leves e Pesados
             const matchesClass = (v) => {
@@ -2630,7 +2655,8 @@
                 selectedClassFilter, preventiveCardFilter, searchQueryPreventive, filteredPreventivesForTable, setPreventiveCardFilter, exportPreventiveReport,
                 compliancePercentage, totalPreventiveCount, regionalComplianceRanking,
                 showMobileFilters,
-                getDaysSinceLastAbastecimento, isVehicleActive
+                getDaysSinceLastAbastecimento, isVehicleActive,
+                countInactiveVehicles, averageOverdueKm
             };
         }
     }).mount('#app');
