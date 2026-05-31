@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -33,9 +32,6 @@
             scrollbar-width: none;
         }
     </style>
-<!-- Biblioteca de Mapas Leaflet (Leve e Gratuita) -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body class="bg-slate-50">
 
@@ -83,23 +79,23 @@
     <div v-else class="flex-1 flex flex-col">
         <!-- Header -->
         <header class="bg-white border-b border-slate-200 px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div class="flex items-center gap-3 justify-between min-w-0 w-full md:w-auto">
-                <img src="logo.png" alt="Sirtec Logo" class="h-12 w-auto object-contain flex-shrink-0" @error="handleLogoError">
+            <div class="flex items-center gap-3 justify-between w-full md:w-auto">
+                <img src="logo.png" alt="Sirtec Logo" class="h-12 w-auto object-contain" @error="handleLogoError">
                 
                 <!-- TESTE 1: BARRA DE STATUS DINÂMICA NO CABEÇALHO -->
-                <div v-if="currentTab === 'preventivas' && !selectedVehicle" class="hidden lg:flex min-w-0 items-center gap-2 bg-slate-50 border border-slate-100 px-4 py-2 rounded-xl text-xs font-semibold animate-fade-in shrink-0">
+                <div v-if="currentTab === 'preventivas' && !selectedVehicle" class="hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-100 px-4 py-2 rounded-xl text-xs font-semibold animate-fade-in shrink-0">
                     <span class="relative flex h-2 w-2">
                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                         <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
                     </span>
-                    <span class="truncate max-w-[40rem] text-slate-600 block">
+                    <span class="text-slate-600">
                         Frota Geral: <strong class="text-blue-600">{{ compliancePercentage }}%</strong> dos caminhões estão com manutenção regularizada ({{ countPreventive.emDia }} de {{ totalPreventiveCount }} ativos).
                     </span>
                 </div>
             </div>
             
             <!-- Menu do Topo responsivo -->
-            <nav class="flex flex-wrap md:flex-nowrap md:flex-1 items-center gap-1 overflow-x-auto whitespace-nowrap max-w-full pb-2 md:pb-0 scrollbar-none shrink-0 w-full md:w-auto min-w-0">
+            <nav class="flex items-center gap-1 overflow-x-auto whitespace-nowrap max-w-full pb-2 md:pb-0 scrollbar-none shrink-0 w-full md:w-auto">
                 <button @click="currentTab = 'laudos'; selectedVehicle = null" :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', currentTab === 'laudos' && !selectedVehicle ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50']">
                     Laudos
                 </button>
@@ -108,9 +104,6 @@
                 </button>
                 <button @click="currentTab = 'preventivas'; selectedVehicle = null" :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', currentTab === 'preventivas' && !selectedVehicle ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50']">
                     Preventivas (Novo)
-                </button>
-                <button @click="currentTab = 'disponibilidade'; selectedVehicle = null" :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', currentTab === 'disponibilidade' && !selectedVehicle ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50']">
-                    Disponibilidade (Real-Time)
                 </button>
                 <button v-if="currentUser && currentUser.role === 'admin_geral'" @click="currentTab = 'usuarios'; selectedVehicle = null" :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', currentTab === 'usuarios' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50']">
                     Usuários (ADM)
@@ -121,7 +114,7 @@
             </nav>
         </header>
 
-        <!-- AIN AREA -->
+        <!-- MAIN AREA -->
         <main :class="['flex-1 p-4 md:p-6 w-full mx-auto pb-24 md:pb-6', currentTab === 'preventivas' && !selectedVehicle ? 'flex flex-col md:flex-row gap-6 max-w-[1450px]' : 'max-w-7xl']">
 
             <!-- Botão expansor de filtros para Celular -->
@@ -250,7 +243,7 @@
                                         <span class="font-bold text-slate-700 block mt-0.5 uppercase">{{ selectedVehicle.contrato || '—' }}</span>
                                     </div>
                                     <div>
-                                        <span class="text-slate-400 block font-medium">Operação (Unidade)</span>
+                                        <span class="text-slate-400 block font-medium">Base Operacional</span>
                                         <span class="font-bold text-slate-700 block mt-0.5 uppercase">{{ selectedVehicle.base || '—' }}</span>
                                     </div>
                                     <div>
@@ -679,27 +672,11 @@
                                     <span class="text-blue-600">🛡️</span> Manutenção Preventiva
                                 </h1>
                                 <p class="text-sm text-slate-500 font-medium">Gestão integrada de frota, inteligência analítica e controle preditivo</p>
-                                <div class="mt-2 text-xs text-slate-500 flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-2">
-                                    <div class="inline-flex items-center gap-2 text-slate-700">
-                                        <span class="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" v-if="latestZuqUpdate && (Date.now() - new Date(latestZuqUpdate).getTime()) <= 20 * 60 * 1000"></span>
-                                        <span class="inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" v-else-if="latestZuqUpdate"></span>
-                                        <span class="inline-flex h-2.5 w-2.5 rounded-full bg-slate-300" v-else></span>
-                                        <span>{{ getLatestZuqUpdateLabel() }}</span>
-                                    </div>
-                                    <div class="inline-flex items-center gap-2">
-                                        <span :class="['inline-flex items-center gap-2 rounded-full px-3 py-1 font-semibold', getZuqStatusClass()]">
-                                            <span :class="['h-2.5 w-2.5 rounded-full', zuqStatusLevel === 'ok' ? 'bg-emerald-500' : zuqStatusLevel === 'error' ? 'bg-red-500' : 'bg-amber-500']"></span>
-                                            {{ zuqStatus }}
-                                        </span>
-                                        <span class="text-slate-500">Última tentativa: {{ zuqLastAttempt ? formatDateTime(zuqLastAttempt) : 'Nunca' }}</span>
-                                    </div>
-                                </div>
-                                <div v-if="zuqLastError" class="text-[10px] text-red-600 font-semibold">Erro ZUQ: {{ zuqLastError }}</div>
                             </div>
                             
                             <!-- Input do Excel protegido -->
                             <div v-if="canEdit" class="flex items-center gap-3 bg-white p-3 rounded-lg border border-slate-200 shadow-sm text-xs w-full xl:w-auto justify-between">
-                                <div class="font-semibold text-slate-600">Importar Planilha de Abastecimento (uso manual/fallback):</div>
+                                <div class="font-semibold text-slate-600">Importar Abastecimento:</div>
                                 <input type="file" accept=".xlsx, .xls, .csv" @change="handleExcelImport" class="text-slate-500 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 max-w-[200px]">
                             </div>
                         </div>
@@ -850,7 +827,7 @@
                         <div class="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden animate-fade-in">
                             <!-- BARRA DE BUSCA LOCAL -->
                             <div class="bg-white px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3">
-                                <input v-model="searchQueryPreventive" type="text" placeholder="🔍 Buscar por placa, modelo, operação ou unidade..." class="w-full max-w-sm px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium text-slate-700">
+                                <input v-model="searchQueryPreventive" type="text" placeholder="🔍 Buscar por placa, modelo ou operação..." class="w-full max-w-sm px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium text-slate-700">
                                 <div class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
                                     Mostrando {{ filteredPreventivesForTable.length }} de {{ veiculos.length }} veículos
                                 </div>
@@ -860,7 +837,7 @@
                                 <table class="min-w-full divide-y divide-slate-100 text-left text-xs whitespace-nowrap">
                                     <thead class="bg-slate-50 font-semibold text-slate-600 uppercase">
                                         <tr>
-                                            <th class="px-5 py-4">Operação (Unidade)</th>
+                                            <th class="px-5 py-4">Operação (Nome Reduzido)</th>
                                             <th class="px-5 py-4">Placa</th>
                                             <th class="px-5 py-4">Modelo</th>
                                             <th class="px-5 py-4">KM Atual (Hodômetro)</th>
@@ -875,7 +852,7 @@
                                     </thead>
                                     <tbody class="divide-y divide-slate-100">
                                         <tr v-for="v in filteredPreventivesForTable" :key="v.placa" class="hover:bg-slate-50">
-                                            <td class="px-5 py-4 uppercase text-[10px] font-semibold text-slate-700">{{ getVehicleOperation(v) }}</td>
+                                            <td class="px-5 py-4 uppercase text-[10px] font-semibold text-slate-700">{{ v.operacao || v.contrato || '—' }}</td>
                                             <td class="px-5 py-4 font-bold text-slate-900">{{ v.placa }}</td>
                                             <td class="px-5 py-4 text-slate-500">{{ v.modelo }}</td>
                                             <td class="px-5 py-4 font-semibold text-blue-600">{{ v.kmAtual ? formatNumberWithDots(v.kmAtual) + ' km' : '0 km' }}</td>
@@ -936,302 +913,7 @@
                             </div>
                         </div>
                     </div>
-<!-- TAB: DISPONIBILIDADE -->
-                    <div v-if="currentTab === 'disponibilidade'" class="space-y-6 animate-fade-in">
-                        <div class="flex justify-between items-center">
-                            <h1 class="text-2xl font-bold text-slate-900">Disponibilidade da Frota</h1>
-                            <span class="bg-blue-50 text-blue-600 text-xs font-bold px-3 py-1 rounded-full border border-blue-200">📡 Atualizando a cada 2 min</span>
-                        </div>
 
-                        <!-- KPIs de Telemetria e Disponibilidade -->
-                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                            <div class="bg-white p-5 rounded-2xl border-l-[6px] border-emerald-500 shadow-sm">
-                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Disponibilidade Geral</span>
-                                <div class="text-2xl font-black text-emerald-600 mt-1">
-                                    {{ veiculos.length > 0 ? Math.round((countTelemetryOnlineVehicles / veiculos.length) * 100) : 100 }}%
-                                </div>
-                            </div>
-                            <div class="bg-white p-5 rounded-2xl border-l-[6px] border-blue-500 shadow-sm">
-                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Ligados (Operação)</span>
-                                <div class="text-2xl font-black text-blue-600 mt-1">
-                                    {{ veiculos.filter(v => v.ignicao).length }} <span class="text-xs font-normal text-slate-400">un</span>
-                                </div>
-                            </div>
-                            <div class="bg-white p-5 rounded-2xl border-l-[6px] border-slate-400 shadow-sm">
-                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Desligados / Parados</span>
-                                <div class="text-2xl font-black text-slate-600 mt-1">
-                                    {{ veiculos.filter(v => !v.ignicao).length }} <span class="text-xs font-normal text-slate-400">un</span>
-                                </div>
-                            </div>
-                            <div class="bg-white p-5 rounded-2xl border-l-[6px] border-red-500 shadow-sm">
-                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Excesso de Velocidade</span>
-                                <div class="text-2xl font-black text-red-600 mt-1">
-                                    {{ veiculos.filter(v => v.velocidade > 100).length }} <span class="text-xs font-normal text-slate-400">un</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                            <!-- Mapa (7 Colunas) -->
-                            <div class="lg:col-span-7 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-                                <h3 class="font-bold text-xs text-slate-600 uppercase tracking-wider">🗺️ Mapa de Localização da Frota</h3>
-                                <div v-if="selectedVehicle" class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                                    <div class="space-y-1">
-                                        <label class="block text-[11px] font-semibold text-slate-500 uppercase">Início</label>
-                                        <input type="datetime-local" v-model="routeFilterFrom" class="w-full rounded-2xl border border-slate-200 px-3 py-2 text-xs text-slate-700" />
-                                    </div>
-                                    <div class="space-y-1">
-                                        <label class="block text-[11px] font-semibold text-slate-500 uppercase">Término</label>
-                                        <input type="datetime-local" v-model="routeFilterTo" class="w-full rounded-2xl border border-slate-200 px-3 py-2 text-xs text-slate-700" />
-                                    </div>
-                                    <div class="flex flex-col sm:flex-row sm:items-end gap-2 sm:gap-3 w-full">
-                                        <button type="button" @click="applyQuickRouteRange('today')" class="w-full sm:w-auto rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">Hoje</button>
-                                        <button type="button" @click="applyQuickRouteRange('24h')" class="w-full sm:w-auto rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">Últimas 24h</button>
-                                        <button type="button" @click="routeFilterFrom = ''; routeFilterTo = ''" class="w-full sm:w-auto rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">Limpar filtro</button>
-                                    </div>
-                                </div>
-                                <div v-if="selectedVehicle" class="mt-2 text-[11px] text-slate-500">Rota selecionada: {{ selectedRouteTimeLabel }}</div>
-                                <div v-else class="mt-2 text-[11px] text-slate-500">Clique em uma placa ou motorista para ver a rota no mapa.</div>
-                                <div id="map" class="h-96 w-full rounded-xl border border-slate-200"></div>
-                            </div>
-
-                            <!-- Lista (5 Colunas) -->
-                            <div class="lg:col-span-5 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-                                <h3 class="font-bold text-xs text-slate-600 uppercase tracking-wider">📡 Status Instantâneo</h3>
-                                
-                                <div class="mb-3">
-                                    <input v-model="availabilitySearchQuery" type="text" placeholder="Buscar por placa ou motorista..." class="w-full rounded-2xl border border-slate-200 px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                                </div>
-                                <div class="block md:hidden divide-y divide-slate-100 overflow-y-auto max-h-96">
-                                    <div v-for="v in filteredAvailabilityVehicles" :key="v.placa" class="py-3 flex justify-between items-center text-xs cursor-pointer hover:bg-slate-50" @click="selectVehicleByPlate(v.placa)">
-                                        <div>
-                                            <span class="font-bold text-slate-900 block">{{ v.placa }}</span>
-                                            <span class="text-[10px] text-slate-400 block">{{ getDriverNameByCardId(v.cardId) }}</span>
-                                        </div>
-                                        <div class="text-right">
-                                            <span :class="['px-2 py-0.5 rounded text-[10px] font-bold block mb-1', v.ignicao ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600']">
-                                                {{ v.ignicao ? 'Ligado' : 'Desligado' }}
-                                            </span>
-                                            <span :class="['text-[10px] font-semibold', v.velocidade > 100 ? 'text-red-600' : 'text-slate-500']">{{ v.velocidade }} km/h</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="hidden md:block overflow-y-auto max-h-96">
-                                    <table class="min-w-full divide-y divide-slate-100 text-left text-xs whitespace-nowrap">
-                                        <thead class="bg-slate-50 font-bold text-slate-600 uppercase">
-                                            <tr>
-                                                <th class="py-2.5 px-3">Placa</th>
-                                                <th class="py-2.5 px-3">Motorista</th>
-                                                <th class="py-2.5 px-3">Status</th>
-                                                <th class="py-2.5 px-3">Vel.</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-slate-100">
-                                            <tr v-for="v in filteredAvailabilityVehicles" :key="v.placa" class="hover:bg-slate-50 cursor-pointer" @click="selectVehicleByPlate(v.placa)">
-                                                <td class="py-3 px-3 font-bold text-slate-900">{{ v.placa }}</td>
-                                                <td class="py-3 px-3 text-slate-500 font-medium">{{ getDriverNameByCardId(v.cardId) }}</td>
-                                                <td class="py-3 px-3">
-                                                    <span :class="['px-2 py-0.5 rounded text-[10px] font-black', v.ignicao ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600']">
-                                                        {{ v.ignicao ? 'Ligado' : 'Desligado' }}
-                                                    </span>
-                                                </td>
-                                                <td class="py-3 px-3 font-semibold" :class="v.velocidade > 100 ? 'text-red-600' : 'text-blue-600'">{{ v.velocidade }} km/h</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-                                <div class="flex items-center justify-between mb-4">
-                                    <div>
-                                        <h3 class="font-bold text-xs text-slate-600 uppercase tracking-wider">👨‍✈️ Motoristas em Tempo Real</h3>
-                                        <p class="text-[11px] text-slate-400 mt-1">Atualizado a cada 2 minutos pela ZUQ</p>
-                                    </div>
-                                    <span class="text-[11px] text-slate-400">{{ vehiclesWithDriver.length }} registros</span>
-                                </div>
-                                <div class="space-y-3">
-                                    <div v-for="driver in vehiclesWithDriver.slice(0, 6)" :key="driver.placa" class="flex items-center justify-between gap-3 p-3 rounded-2xl border border-slate-100 hover:border-blue-200 transition-colors">
-                                        <div class="min-w-0">
-                                            <button type="button" @click="selectDriver(driver)" class="w-full text-left">
-                                                <div class="font-semibold text-slate-900">{{ driver.driver }}</div>
-                                                <div class="text-[11px] text-slate-500">{{ driver.placa }} • {{ driver.status }}</div>
-                                            </button>
-                                        </div>
-                                        <div class="text-right text-xs">
-                                            <div :class="['px-2 py-0.5 rounded-full font-bold', driver.velocidade > 100 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600']">{{ driver.velocidade }} km/h</div>
-                                            <div class="text-slate-400">{{ driver.lastUpdate ? `${Math.round((Date.now() - new Date(driver.lastUpdate).getTime())/60000)} min` : 'Sem sinal' }}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div v-if="selectedDriver" class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-                            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-                                <div class="flex items-center justify-between mb-4">
-                                    <div>
-                                        <h3 class="font-bold text-xs text-slate-600 uppercase tracking-wider">👤 Detalhes do Motorista</h3>
-                                        <p class="text-[11px] text-slate-400 mt-1">Histórico, veículos e infrações</p>
-                                    </div>
-                                    <button type="button" @click="selectedDriver = null" class="text-xs text-slate-500 hover:text-slate-700">Fechar</button>
-                                </div>
-                                <div class="space-y-4 text-sm text-slate-700">
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <span class="block text-[11px] text-slate-500 uppercase">Nome</span>
-                                            <div class="font-semibold text-slate-900">{{ selectedDriver.driver }}</div>
-                                        </div>
-                                        <div>
-                                            <span class="block text-[11px] text-slate-500 uppercase">Crachá</span>
-                                            <div class="font-semibold text-slate-900">{{ selectedDriver.cardId || '-' }}</div>
-                                        </div>
-                                    </div>
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <span class="block text-[11px] text-slate-500 uppercase">Telefone</span>
-                                            <div class="font-semibold text-slate-900">{{ getDriverPhone(motoristasZuq.value.find(m => String(m.driverKeyId) === String(selectedDriver.cardId) || String(m.registration) === String(selectedDriver.cardId))) }}</div>
-                                        </div>
-                                        <div>
-                                            <span class="block text-[11px] text-slate-500 uppercase">Veículos com este motorista</span>
-                                            <div class="font-semibold text-slate-900">{{ getDriverVehicles(selectedDriver).length }}</div>
-                                        </div>
-                                    </div>
-                                    <div class="grid grid-cols-3 gap-3">
-                                        <div class="rounded-2xl bg-slate-50 p-3 border border-slate-100">
-                                            <div class="text-[10px] uppercase text-slate-500">Velocidade atual</div>
-                                            <div class="mt-2 font-bold text-slate-900">{{ getDriverCurrentSpeed(selectedDriver) }} km/h</div>
-                                        </div>
-                                        <div class="rounded-2xl bg-slate-50 p-3 border border-slate-100">
-                                            <div class="text-[10px] uppercase text-slate-500">Velocidade média</div>
-                                            <div class="mt-2 font-bold text-slate-900">{{ getDriverAverageSpeed(selectedDriver) }} km/h</div>
-                                        </div>
-                                        <div class="rounded-2xl bg-amber-50 p-3 border border-amber-100 text-amber-800">
-                                            <div class="text-[10px] uppercase text-amber-700">Infrações</div>
-                                            <div class="mt-2 font-bold text-amber-900">{{ getDriverInfractionCount(selectedDriver) }}</div>
-                                        </div>
-                                    </div>
-                                    <div class="rounded-2xl bg-slate-50 p-3 border border-slate-100 text-[11px] text-slate-600">
-                                        Últimos registros de telemetria para este motorista.
-                                    </div>
-                                    <div class="space-y-2 max-h-72 overflow-y-auto">
-                                        <div v-for="(event, index) in getDriverRecords(selectedDriver).slice(-10).reverse()" :key="index" class="rounded-2xl bg-white p-3 border border-slate-100">
-                                            <div class="flex justify-between items-center text-[11px] text-slate-600">
-                                                <span>{{ new Date(event.time).toLocaleString('pt-BR') }}</span>
-                                                <span :class="['px-2 py-0.5 rounded-full text-[10px] font-semibold', event.overspeed ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600']">{{ event.speed }} km/h</span>
-                                            </div>
-                                            <div class="text-[11px] text-slate-500">Placa: {{ event.placa }} • {{ event.ignition ? 'Ligado' : 'Desligado' }}</div>
-                                        </div>
-                                        <div v-if="getDriverRecords(selectedDriver).length === 0" class="rounded-2xl bg-slate-50 p-3 border border-slate-100 text-slate-500 text-xs">Sem histórico registrado para este motorista ainda.</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-                                <div class="flex items-center justify-between mb-4">
-                                    <div>
-                                        <h3 class="font-bold text-xs text-slate-600 uppercase tracking-wider">🚨 Alertas de Disponibilidade</h3>
-                                        <p class="text-[11px] text-slate-400 mt-1">Monitoramento de velocidade e sinal</p>
-                                    </div>
-                                    <span class="text-[11px] text-slate-400">Últimos 2 min</span>
-                                </div>
-                                <div class="grid gap-3 text-sm text-slate-700">
-                                    <div class="flex items-center justify-between gap-2 rounded-2xl p-3 bg-slate-50 border border-slate-100">
-                                        <span>Excesso de velocidade (&gt; 100 km/h)</span>
-                                        <strong class="text-red-600">{{ vehiclesOverspeed.length }} un</strong>
-                                    </div>
-                                    <div class="flex items-center justify-between gap-2 rounded-2xl p-3 bg-slate-50 border border-slate-100">
-                                        <span>Sem sinal > 15 min</span>
-                                        <strong class="text-amber-600">{{ vehiclesNoSignal.length }} un</strong>
-                                    </div>
-                                    <div class="flex items-center justify-between gap-2 rounded-2xl p-3 bg-slate-50 border border-slate-100">
-                                        <span>Trajetos armazenados</span>
-                                        <strong class="text-blue-600">{{ trackedPathCount }} veículos</strong>
-                                    </div>
-                                    <div class="rounded-2xl p-3 bg-slate-100 text-xs text-slate-500">
-                                        Selecione uma placa para ver a rota armazenada no mapa e as fotos locais no painel do veículo.
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-                                <div class="flex items-center justify-between mb-4">
-                                    <div>
-                                        <h3 class="font-bold text-xs text-slate-600 uppercase tracking-wider">🧭 Rota Selecionada</h3>
-                                        <p class="text-[11px] text-slate-400 mt-1">Resumo do trajeto filtrado</p>
-                                    </div>
-                                    <span class="text-[11px] text-slate-400">{{ selectedRoutePoints }} pontos</span>
-                                </div>
-                                <div class="text-sm text-slate-700 space-y-3">
-                                    <div class="flex items-center justify-between gap-2">
-                                        <span class="font-semibold">Placa</span>
-                                        <span class="text-slate-500">{{ selectedVehicle ? selectedVehicle.placa : 'Nenhum' }}</span>
-                                    </div>
-                                    <div class="flex items-center justify-between gap-2">
-                                        <span class="font-semibold">Período</span>
-                                        <span class="text-slate-500">{{ selectedRouteTimeLabel }}</span>
-                                    </div>
-                                    <div class="flex items-center justify-between gap-2">
-                                        <span class="font-semibold">Distância</span>
-                                        <span class="text-slate-500">{{ selectedRouteDistance }} km</span>
-                                    </div>
-                                    <div class="flex items-center justify-between gap-2">
-                                        <span class="font-semibold">Tempo total</span>
-                                        <span class="text-slate-500">{{ formatDuration(selectedRouteTotalMs) }}</span>
-                                    </div>
-                                    <div class="flex items-center justify-between gap-2">
-                                        <span class="font-semibold">Tempo ativo</span>
-                                        <span class="text-slate-500">{{ formatDuration(selectedRouteActiveMs) }}</span>
-                                    </div>
-                                    <div class="flex items-center justify-between gap-2">
-                                        <span class="font-semibold">Tempo inativo</span>
-                                        <span class="text-slate-500">{{ formatDuration(selectedRouteInactiveMs) }}</span>
-                                    </div>
-                                    <div class="rounded-2xl p-3 bg-slate-50 border border-slate-200 text-xs text-slate-500">
-                                        {{ selectedVehicle ? (selectedRoutePoints > 0 ? 'Últimos pontos listados abaixo' : 'Escolha outro período ou veículo com rota.') : 'Clique em um veículo no painel para ver a rota.' }}
-                                    </div>
-                                    <div class="flex items-center justify-between gap-2">
-                                        <button type="button" @click="downloadRouteCsv" :disabled="selectedRouteExportCount === 0" :class="['rounded-2xl border px-3 py-2 text-xs font-semibold', selectedRouteExportCount > 0 ? 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100' : 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed']">Exportar CSV</button>
-                                        <span class="text-[11px] text-slate-400">{{ selectedRouteExportCount > 0 ? 'Exporta a rota filtrada ou a rota completa do veículo' : 'Selecione um veículo com rota' }}</span>
-                                    </div>
-                                </div>
-                                <div class="mt-4 pt-4 border-t border-slate-200 space-y-3">
-                                    <div class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Resumo do Dia</div>
-                                    <div class="grid grid-cols-2 gap-3 text-sm text-slate-700">
-                                        <div class="rounded-2xl bg-slate-50 p-3 border border-slate-100">
-                                            <div class="text-[10px] uppercase text-slate-500">Distância hoje</div>
-                                            <div class="mt-2 font-bold text-slate-900">{{ selectedRouteDistanceToday }} km</div>
-                                        </div>
-                                        <div class="rounded-2xl bg-slate-50 p-3 border border-slate-100">
-                                            <div class="text-[10px] uppercase text-slate-500">Tempo ativo hoje</div>
-                                            <div class="mt-2 font-bold text-slate-900">{{ formatDuration(selectedRouteActiveMsToday) }}</div>
-                                        </div>
-                                        <div class="rounded-2xl bg-slate-50 p-3 border border-slate-100">
-                                            <div class="text-[10px] uppercase text-slate-500">Tempo inativo hoje</div>
-                                            <div class="mt-2 font-bold text-slate-900">{{ formatDuration(selectedRouteInactiveMsToday) }}</div>
-                                        </div>
-                                        <div class="rounded-2xl bg-slate-50 p-3 border border-slate-100">
-                                            <div class="text-[10px] uppercase text-slate-500">Pontos hoje</div>
-                                            <div class="mt-2 font-bold text-slate-900">{{ selectedRoutePointsToday }}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div v-if="selectedVehicle && selectedRoutePoints > 0" class="mt-4 space-y-2 text-[11px] text-slate-600">
-                                    <div v-for="(point, index) in filteredVehiclePath(selectedVehicle).slice(-5)" :key="index" class="flex justify-between rounded-xl bg-slate-50 p-2 border border-slate-100">
-                                        <span>{{ new Date(point.time).toLocaleTimeString('pt-BR') }}</span>
-                                        <span>{{ point.lat.toFixed(5) }}, {{ point.lon.toFixed(5) }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                     <!-- TAB: USUÁRIOS -->
                     <div v-if="currentTab === 'usuarios' && currentUser && currentUser.role === 'admin_geral'" class="space-y-6">
                         <div class="flex justify-between items-center">
@@ -1289,10 +971,6 @@
         <button @click="currentTab = 'preventivas'; selectedVehicle = null" :class="['flex flex-col items-center gap-1 transition-colors', currentTab === 'preventivas' ? 'text-blue-600 font-bold' : 'text-slate-400']">
             <span class="text-xl">🛡️</span>
             <span class="text-[10px] tracking-tight">Preventivas</span>
-        </button>
-<button @click="currentTab = 'disponibilidade'; selectedVehicle = null" :class="['flex flex-col items-center gap-1 transition-colors', currentTab === 'disponibilidade' ? 'text-blue-600 font-bold' : 'text-slate-400']">
-            <span class="text-xl">📡</span>
-            <span class="text-[10px] tracking-tight">Mapa</span>
         </button>
     </div>
 
@@ -1415,7 +1093,7 @@
                     <input v-model="editVehicleForm.contrato" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm uppercase">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 uppercase">Operação (Unidade)</label>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase">Base Operacional</label>
                     <input v-model="editVehicleForm.base" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm uppercase font-semibold text-slate-700">
                 </div>
                 <div>
@@ -1524,7 +1202,7 @@
                         <input v-model="newVehicle.contrato" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm uppercase">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase">Operação (Unidade)</label>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase">Base Operacional</label>
                         <input v-model="newVehicle.base" type="text" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded text-sm uppercase font-semibold text-slate-700">
                     </div>
                     <div>
@@ -1556,52 +1234,21 @@
     // ==========================================================
     // CREDENCIAIS DO BANCO DE DADOS SUPABASE
     // ==========================================================
-    let appConfig = {
-        appName: 'Sirtec - Controle de Laudos e Frota',
-        env: 'development',
-        supabaseUrl: 'https://regfencgflzcypgqpbjb.supabase.co',
-        supabaseAnonKey: 'sb_publishable_DOqgEdQ8-1pU7mCKf_-lRg_2ZIgYp-4',
-        supportEmail: 'suporte@sirtec.com.br',
-        defaultLocale: 'pt-BR',
-        featureFlags: {
-            enableRealtimeAvailability: true,
-            enableUserAdminTab: true
-        }
-    };
+    const SUPABASE_URL = 'https://regfencgflzcypgqpbjb.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_DOqgEdQ8-1pU7mCKf_-lRg_2ZIgYp-4';
 
-    let SUPABASE_URL = appConfig.supabaseUrl;
-    let SUPABASE_ANON_KEY = appConfig.supabaseAnonKey;
-    let dbConfigured = (SUPABASE_ANON_KEY !== 'COLE_AQUI_A_SUA_API_KEY_ANON');
+    const dbConfigured = (SUPABASE_ANON_KEY !== 'COLE_AQUI_A_SUA_API_KEY_ANON');
     let supabaseClient = null;
 
-    async function loadConfig() {
+    if (dbConfigured && typeof window.supabase !== 'undefined') {
         try {
-            const response = await fetch('config.json', { cache: 'no-store' });
-            if (!response.ok) {
-                throw new Error(`Falha ao carregar config.json: ${response.status}`);
-            }
-            const data = await response.json();
-            appConfig = { ...appConfig, ...data };
-            SUPABASE_URL = appConfig.supabaseUrl;
-            SUPABASE_ANON_KEY = appConfig.supabaseAnonKey;
-            dbConfigured = (SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== 'COLE_AQUI_A_SUA_API_KEY_ANON');
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         } catch (err) {
-            console.warn('Não foi possível carregar config.json; usando valores internos.', err);
+            console.error("Supabase indisponível no momento: ", err);
         }
     }
 
-    async function initApp() {
-        await loadConfig();
-
-        if (dbConfigured && typeof window.supabase !== 'undefined') {
-            try {
-                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            } catch (err) {
-                console.error("Supabase indisponível no momento: ", err);
-            }
-        }
-
-        createApp({
+    createApp({
         setup() {
             // Sessão & Login
             const logged = ref(false);
@@ -1633,238 +1280,6 @@
             const selectedClassFilter = ref('todos');
             const preventiveCardFilter = ref(null);
             const searchQueryPreventive = ref('');
-
-            // Filtros de data/hora para rota do veículo selecionado
-            const routeFilterFrom = ref('');
-            const routeFilterTo = ref('');
-            const availabilitySearchQuery = ref('');
-
-            const filteredVehiclePath = (vehicle) => {
-                if (!vehicle || !vehicle.path || vehicle.path.length === 0) return [];
-                const fromTs = routeFilterFrom.value ? new Date(routeFilterFrom.value).getTime() : -Infinity;
-                const toTs = routeFilterTo.value ? new Date(routeFilterTo.value).getTime() : Infinity;
-                return vehicle.path.filter(point => {
-                    const pointTs = point && point.time ? new Date(point.time).getTime() : NaN;
-                    return !Number.isNaN(pointTs) && pointTs >= fromTs && pointTs <= toTs;
-                });
-            };
-
-            const selectedRouteTimeLabel = computed(() => {
-                if (!selectedVehicle.value || !selectedVehicle.value.path || selectedVehicle.value.path.length === 0) {
-                    return 'Sem rota disponível';
-                }
-                const path = filteredVehiclePath(selectedVehicle.value);
-                if (path.length === 0) {
-                    return 'Nenhum ponto encontrado no intervalo';
-                }
-                const first = new Date(path[0].time);
-                const last = new Date(path[path.length - 1].time);
-                return `${first.toLocaleString('pt-BR')} → ${last.toLocaleString('pt-BR')}`;
-            });
-
-            const calculateHaversineDistance = (lat1, lon1, lat2, lon2) => {
-                const toRad = (value) => value * Math.PI / 180;
-                const R = 6371;
-                const dLat = toRad(lat2 - lat1);
-                const dLon = toRad(lon2 - lon1);
-                const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2) * Math.sin(dLon/2);
-                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                return R * c;
-            };
-
-            const selectedRouteOdometerDistance = computed(() => {
-                const path = filteredVehiclePath(selectedVehicle.value);
-                if (!path || path.length < 2) return null;
-                const startOdometer = path[0].odometer;
-                const endOdometer = path[path.length - 1].odometer;
-                if (startOdometer != null && endOdometer != null && !Number.isNaN(startOdometer) && !Number.isNaN(endOdometer)) {
-                    return parseFloat(Math.max(0, (endOdometer - startOdometer) / 1000).toFixed(2));
-                }
-                return null;
-            });
-
-            const selectedRouteDistance = computed(() => {
-                const kmByOdom = selectedRouteOdometerDistance.value;
-                if (kmByOdom !== null) return kmByOdom;
-                const path = filteredVehiclePath(selectedVehicle.value);
-                if (!path || path.length < 2) return 0;
-                let total = 0;
-                for (let i = 1; i < path.length; i++) {
-                    total += calculateHaversineDistance(path[i-1].lat, path[i-1].lon, path[i].lat, path[i].lon);
-                }
-                return parseFloat(total.toFixed(2));
-            });
-
-            const selectedRouteTotalMs = computed(() => {
-                const path = filteredVehiclePath(selectedVehicle.value);
-                if (!path || path.length < 2) return 0;
-                const firstTs = new Date(path[0].time).getTime();
-                const lastTs = new Date(path[path.length - 1].time).getTime();
-                return Math.max(0, lastTs - firstTs);
-            });
-
-            const selectedRouteActiveMs = computed(() => {
-                const path = filteredVehiclePath(selectedVehicle.value);
-                if (!path || path.length < 2) return 0;
-                let active = 0;
-                for (let i = 1; i < path.length; i++) {
-                    const previous = path[i - 1];
-                    const current = path[i];
-                    const delta = new Date(current.time).getTime() - new Date(previous.time).getTime();
-                    const moving = previous.ignition || previous.speed > 3 || current.speed > 3;
-                    if (delta > 0 && moving) {
-                        active += delta;
-                    }
-                }
-                return Math.max(0, active);
-            });
-
-            const selectedRouteInactiveMs = computed(() => {
-                return Math.max(0, selectedRouteTotalMs.value - selectedRouteActiveMs.value);
-            });
-
-            const formatDuration = (ms) => {
-                if (!ms || ms <= 0) return '0h 0m';
-                const totalMinutes = Math.round(ms / 60000);
-                const hours = Math.floor(totalMinutes / 60);
-                const minutes = totalMinutes % 60;
-                return `${hours}h ${minutes}m`;
-            };
-
-            const selectedRoutePoints = computed(() => {
-                return filteredVehiclePath(selectedVehicle.value).length;
-            });
-
-            const filteredAvailabilityVehicles = computed(() => {
-                if (!availabilitySearchQuery.value || availabilitySearchQuery.value.trim() === '') {
-                    return veiculos.value;
-                }
-                const query = availabilitySearchQuery.value.trim().toLowerCase();
-                return veiculos.value.filter(v => {
-                    const placa = String(v.placa || '').toLowerCase();
-                    const driver = String(getDriverNameByCardId(v.cardId) || '').toLowerCase();
-                    return placa.includes(query) || driver.includes(query);
-                });
-            });
-
-            const selectedRoutePath = computed(() => {
-                return filteredVehiclePath(selectedVehicle.value);
-            });
-
-            const selectedRouteExportPath = computed(() => {
-                const filteredPath = selectedRoutePath.value;
-                if (filteredPath && filteredPath.length > 0) return filteredPath;
-                if (selectedVehicle.value && selectedVehicle.value.path && selectedVehicle.value.path.length > 0) {
-                    return selectedVehicle.value.path;
-                }
-                return [];
-            });
-
-            const selectedRouteExportCount = computed(() => selectedRouteExportPath.value.length);
-
-            const selectedRoutePathToday = computed(() => {
-                if (!selectedVehicle.value || !selectedVehicle.value.path || selectedVehicle.value.path.length === 0) return [];
-                const startOfDay = new Date();
-                startOfDay.setHours(0, 0, 0, 0);
-                const now = Date.now();
-                return selectedVehicle.value.path.filter(point => {
-                    const pointTs = point && point.time ? new Date(point.time).getTime() : NaN;
-                    return !Number.isNaN(pointTs) && pointTs >= startOfDay.getTime() && pointTs <= now;
-                });
-            });
-
-            const selectedRoutePointsToday = computed(() => selectedRoutePathToday.value.length);
-
-            const selectedRouteDistanceToday = computed(() => {
-                const path = selectedRoutePathToday.value;
-                if (!path || path.length < 2) return 0;
-                const startOdometer = path[0].odometer;
-                const endOdometer = path[path.length - 1].odometer;
-                if (startOdometer != null && endOdometer != null && !Number.isNaN(startOdometer) && !Number.isNaN(endOdometer)) {
-                    return parseFloat(Math.max(0, (endOdometer - startOdometer) / 1000).toFixed(2));
-                }
-                let total = 0;
-                for (let i = 1; i < path.length; i++) {
-                    total += calculateHaversineDistance(path[i-1].lat, path[i-1].lon, path[i].lat, path[i].lon);
-                }
-                return parseFloat(total.toFixed(2));
-            });
-
-            const selectedRouteTotalMsToday = computed(() => {
-                const path = selectedRoutePathToday.value;
-                if (!path || path.length < 2) return 0;
-                const firstTs = new Date(path[0].time).getTime();
-                const lastTs = new Date(path[path.length - 1].time).getTime();
-                return Math.max(0, lastTs - firstTs);
-            });
-
-            const selectedRouteActiveMsToday = computed(() => {
-                const path = selectedRoutePathToday.value;
-                if (!path || path.length < 2) return 0;
-                let active = 0;
-                for (let i = 1; i < path.length; i++) {
-                    const previous = path[i - 1];
-                    const current = path[i];
-                    const delta = new Date(current.time).getTime() - new Date(previous.time).getTime();
-                    const moving = previous.ignition || previous.speed > 3 || current.speed > 3;
-                    if (delta > 0 && moving) {
-                        active += delta;
-                    }
-                }
-                return Math.max(0, active);
-            });
-
-            const selectedRouteInactiveMsToday = computed(() => {
-                return Math.max(0, selectedRouteTotalMsToday.value - selectedRouteActiveMsToday.value);
-            });
-
-            const formatLocalDatetimeInput = (date) => {
-                const tzOffset = date.getTimezoneOffset() * 60000;
-                return new Date(date - tzOffset).toISOString().slice(0, 16);
-            };
-
-            const applyQuickRouteRange = (range) => {
-                const now = new Date();
-                if (range === 'today') {
-                    const start = new Date(now);
-                    start.setHours(0, 0, 0, 0);
-                    routeFilterFrom.value = formatLocalDatetimeInput(start);
-                    routeFilterTo.value = formatLocalDatetimeInput(now);
-                    return;
-                }
-                if (range === '24h') {
-                    const start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-                    routeFilterFrom.value = formatLocalDatetimeInput(start);
-                    routeFilterTo.value = formatLocalDatetimeInput(now);
-                }
-            };
-
-            const downloadRouteCsv = () => {
-                const path = selectedRouteExportPath.value;
-                if (!path || path.length === 0) {
-                    window.alert('Não há rota para exportar. Selecione um veículo com rota ou verifique o filtro de período.');
-                    return;
-                }
-                const headers = ['timestamp', 'lat', 'lon', 'speed', 'ignition', 'odometer'];
-                const rows = path.map(point => [
-                    point.time || '',
-                    point.lat || '',
-                    point.lon || '',
-                    point.speed != null ? point.speed : '',
-                    point.ignition != null ? point.ignition : '',
-                    point.odometer != null ? point.odometer : ''
-                ]);
-                const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))].join('\r\n');
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${selectedVehicle.value ? selectedVehicle.value.placa : 'rota'}_${new Date().toISOString().slice(0, 10)}.csv`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            };
             
             // Controle de visibilidade de painel de filtros para Mobile
             const showMobileFilters = ref(false);
@@ -1885,156 +1300,15 @@
             let regionalChartInstance = null;
             let distributionChartInstance = null;
 
-            // ==========================================================
-            // VARIÁVEIS DE TELEMETRIA DA ZUQ (RASTREAMENTO EM TEMPO REAL)
-            // ==========================================================
-            const ZUQ_TOKEN = 'QQ5R0DL2WW50NSXVCSHFDOZLTR66JHOWIF7O42X7GDBAQP7OHPY7BW6PM610IZMP25MPON632MVOA5W051XR8P3YQN2C16KN2O4164UMUHBL62UB5DX2N5UVH2E6VVLL';
-            const motoristasZuq = ref([]);
-            const zuqStatus = ref('Aguardando sincronização...');
-            const zuqStatusLevel = ref('warning');
-            const zuqLastAttempt = ref(null);
-            const zuqLastError = ref('');
-
-            const vehiclesOverspeed = computed(() => veiculos.value.filter(v => parseFloat(v.velocidade) > 100));
-            const vehiclesNoSignal = computed(() => veiculos.value.filter(v => {
-                if (!v.ultimaAtualizacaoRastreador) return true;
-                const diff = Date.now() - new Date(v.ultimaAtualizacaoRastreador).getTime();
-                return diff > 1000 * 60 * 15;
-            }));
-            const vehiclesWithDriver = computed(() => veiculos.value.map(v => {
-                const driver = motoristasZuq.value.find(m => String(m.driverKeyId) === String(v.cardId) || String(m.registration) === String(v.cardId));
-                return {
-                    placa: v.placa,
-                    driver: driver ? driver.name : 'Não identificado',
-                    cardId: v.cardId,
-                    status: v.ignicao ? 'Ligado' : 'Desligado',
-                    velocidade: v.velocidade || 0,
-                    lastUpdate: v.ultimaAtualizacaoRastreador || null,
-                    pathCount: v.path ? v.path.length : 0
-                };
-            }));
-            const trackedPathCount = computed(() => veiculos.value.filter(v => v.path && v.path.length > 1).length);
-
-            const selectedDriver = ref(null);
-            const driverHistory = ref({});
-
-            const loadDriverHistory = () => {
-                try {
-                    const saved = localStorage.getItem('driverHistory');
-                    driverHistory.value = saved ? JSON.parse(saved) : {};
-                } catch (e) {
-                    driverHistory.value = {};
-                }
-            };
-
-            const saveDriverHistory = () => {
-                try {
-                    localStorage.setItem('driverHistory', JSON.stringify(driverHistory.value));
-                } catch (e) {
-                    console.warn('Não foi possível salvar histórico de motorista:', e);
-                }
-            };
-
-            const getDriverPhone = (driver) => {
-                if (!driver) return 'Não disponível';
-                return driver.phone || driver.telefone || driver.celular || driver.mobile || driver.phoneNumber || driver.contactPhone || 'Não disponível';
-            };
-
-            const getDriverRecords = (driver) => {
-                if (!driver || !driver.cardId) return [];
-                const key = String(driver.cardId);
-                return driverHistory.value[key] ? driverHistory.value[key].events || [] : [];
-            };
-
-            const getDriverVehicles = (driver) => {
-                if (!driver || !driver.cardId) return [];
-                return veiculos.value.filter(v => String(v.cardId) === String(driver.cardId));
-            };
-
-            const getDriverInfractionCount = (driver) => {
-                const vehicles = getDriverVehicles(driver);
-                return vehicles.reduce((count, v) => {
-                    if (!v.path || v.path.length === 0) return count;
-                    return count + v.path.filter(point => point.speed > 100).length;
-                }, 0);
-            };
-
-            const getDriverCurrentSpeed = (driver) => {
-                const vehicles = getDriverVehicles(driver);
-                if (vehicles.length === 0) return 0;
-                return Math.max(...vehicles.map(v => Number(v.velocidade) || 0));
-            };
-
-            const getDriverAverageSpeed = (driver) => {
-                const vehicles = getDriverVehicles(driver);
-                const speeds = vehicles.flatMap(v => (v.path || []).map(point => Number(point.speed || 0)));
-                if (speeds.length === 0) return 0;
-                return Math.round(speeds.reduce((sum, speed) => sum + speed, 0) / speeds.length);
-            };
-
-            const selectDriver = (driver) => {
-                if (!driver) return;
-                selectedDriver.value = driver;
-                if (driver.cardId && driverHistory.value[driver.cardId]) {
-                    selectedDriver.value.history = driverHistory.value[driver.cardId].events || [];
-                } else {
-                    selectedDriver.value.history = [];
-                }
-            };
-
-            const updateDriverHistory = (item) => {
-                if (!item || !item.cardId) return;
-                const cardId = String(item.cardId);
-                const driverName = getDriverNameByCardId(item.cardId);
-                const driver = motoristasZuq.value.find(m => String(m.driverKeyId) === cardId || String(m.registration) === cardId) || {};
-                if (!driverHistory.value[cardId]) {
-                    driverHistory.value[cardId] = {
-                        name: driver.name || driverName,
-                        cardId,
-                        phone: getDriverPhone(driver),
-                        events: []
-                    };
-                }
-                const entry = {
-                    time: item.gpsTime || item.timestamp || new Date().toISOString(),
-                    placa: item.licensePlate || '',
-                    speed: item.speed || 0,
-                    overspeed: item.speed > 100,
-                    ignition: item.ignition || false
-                };
-                driverHistory.value[cardId].events.push(entry);
-                if (driverHistory.value[cardId].events.length > 50) {
-                    driverHistory.value[cardId].events.splice(0, driverHistory.value[cardId].events.length - 50);
-                }
-                saveDriverHistory();
-            };
-
-            loadDriverHistory();
-
-            const getMinutesSinceUpdate = (vehicle) => {
-                if (!vehicle || !vehicle.ultimaAtualizacaoRastreador) return null;
-                const diff = Date.now() - new Date(vehicle.ultimaAtualizacaoRastreador).getTime();
-                return Math.round(diff / 60000);
-            };
-
-            // Instâncias do Mapa Leaflet
-            let mapInstance = null;
-            let markersLayer = null;
-            let routeLayer = null;
-
             onMounted(async () => {
                 await loadAllData();
             });
 
             // Monitora mudanças para redesenhar os gráficos automaticamente (Filtros, Dados, Abas)
-            watch([currentTab, veiculos, selectedClassFilter, preventiveCardFilter, selectedContract, selectedVehicle, routeFilterFrom, routeFilterTo], async () => {
+            watch([currentTab, veiculos, selectedClassFilter, preventiveCardFilter, selectedContract, selectedVehicle], async () => {
                 if (currentTab.value === 'preventivas' && !selectedVehicle.value) {
                     await nextTick();
                     renderDashboardCharts();
-                }
-                if (currentTab.value === 'disponibilidade') {
-                    await nextTick();
-                    renderLeafletMap();
                 }
             });
 
@@ -2173,11 +1447,7 @@
                                 dataUltimoAbastecimento: v.data_ultimo_abastecimento || '',
                                 operacao: v.operacao || '',
                                 emailAlerta: v.email_alerta || '',
-                                fotos: v.fotos || [], termo: v.termo || null, equipe: v.equipe || '',
-                                lat: v.lat || null, lon: v.lon || null, ignicao: v.ignicao || false,
-                                velocidade: v.velocidade || 0, cardId: v.card_id || null,
-                                ultimaAtualizacaoRastreador: v.ultima_atualizacao_rastreador || null,
-                                path: v.path || []
+                                fotos: v.fotos || [], termo: v.termo || null, equipe: v.equipe || ''
                             }));
                         } else {
                             loadLocalBackup();
@@ -2191,16 +1461,6 @@
                                 validade: d.validade, filename: d.filename, fileData: d.file_data
                             }));
                         }
-
-                        // Sincronização automatizada da ZUQ ao carregar o sistema
-                        await fetchDriversFromZuq();
-                        await fetchZuqTelemetry();
-
-                        // Atualiza a telemetria em segundo plano a cada 2 minutos
-                        setInterval(async () => {
-                            await fetchZuqTelemetry();
-                        }, 120000);
-
                     } catch (e) {
                         console.error("Erro na busca de dados. Ativando Backup Local.", e);
                         loadLocalBackup();
@@ -2231,8 +1491,8 @@
                         veiculos.value = JSON.parse(savedVehicles);
                     } else {
                         veiculos.value = [
-                            { placa: 'IZY0C52', modelo: 'M.BENZ/ATEGO 1719', marca: 'MERCEDES', ano: '2019', tipo: 'LINHA MORTA', contrato: 'BARREIRAS', base: 'EXTREMO OESTE', renavam: '123456789', chassi: '9XXXXXXXXXXXXXX', numCrlv: '987654321', coordenacao: 'COORD_OESTE', supervisao: 'LAURINDO', combustivel: 'Diesel', valorLocacao: '8.500', rastreador: 'Sim', numRastreador: 'RST-900', kmAtual: 12500, ultimaPreventivaKm: 10000, dataUltimoAbastecimento: '28/05/2026 14:02', operacao: 'BARREIRAS - CONSTRUÇÃO', emailAlerta: 'supervisor.oeste@sirtec.com.br', fotos: [], termo: null, equipe: '', path: [] },
-                            { placa: 'JAE2D02', modelo: 'M.BENZ/ATEGO 1719', marca: 'MERCEDES', ano: '2019', tipo: 'LINHA MORTA', contrato: 'BARREIRAS', base: 'EXTREMO OESTE', renavam: '', chassi: '', numCrlv: '', coordenacao: '', supervisao: 'LAURINDO', combustivel: 'Diesel', valorLocacao: '8.500', rastreador: 'Não', numRastreador: '', kmAtual: 9800, ultimaPreventivaKm: 0, dataUltimoAbastecimento: '28/05/2026 13:45', operacao: 'EH004 - MANUTENÇÃO', emailAlerta: 'supervisor2@sirtec.com.br', fotos: [], termo: null, equipe: 'EH004', path: [] }
+                            { placa: 'IZY0C52', modelo: 'M.BENZ/ATEGO 1719', marca: 'MERCEDES', ano: '2019', tipo: 'LINHA MORTA', contrato: 'BARREIRAS', base: 'EXTREMO OESTE', renavam: '123456789', chassi: '9XXXXXXXXXXXXXX', numCrlv: '987654321', coordenacao: 'COORD_OESTE', supervisao: 'LAURINDO', combustivel: 'Diesel', valorLocacao: '8.500', rastreador: 'Sim', numRastreador: 'RST-900', kmAtual: 12500, ultimaPreventivaKm: 10000, dataUltimoAbastecimento: '28/05/2026 14:02', operacao: 'BARREIRAS - CONSTRUÇÃO', emailAlerta: 'supervisor.oeste@sirtec.com.br', fotos: [], termo: null, equipe: '' },
+                            { placa: 'JAE2D02', modelo: 'M.BENZ/ATEGO 1719', marca: 'MERCEDES', ano: '2019', tipo: 'LINHA MORTA', contrato: 'BARREIRAS', base: 'EXTREMO OESTE', renavam: '', chassi: '', numCrlv: '', coordenacao: '', supervisao: 'LAURINDO', combustivel: 'Diesel', valorLocacao: '8.500', rastreador: 'Não', numRastreador: '', kmAtual: 9800, ultimaPreventivaKm: 0, dataUltimoAbastecimento: '28/05/2026 13:45', operacao: 'EH004 - MANUTENÇÃO', emailAlerta: 'supervisor2@sirtec.com.br', fotos: [], termo: null, equipe: 'EH004' }
                         ];
                         localStorage.setItem('sirtec_veiculos', JSON.stringify(veiculos.value));
                     }
@@ -2317,16 +1577,7 @@
                 const found = veiculos.value.find(v => v.placa === placa);
                 if (found) {
                     selectedVehicle.value = found;
-                    if (currentTab.value !== 'disponibilidade') {
-                        currentTab.value = 'veiculos';
-                    }
-                    // Selecionar o motorista automaticamente se estiver na aba de disponibilidade
-                    if (currentTab.value === 'disponibilidade' && found.cardId) {
-                        const driver = vehiclesWithDriver.value.find(d => String(d.cardId) === String(found.cardId));
-                        if (driver) {
-                            selectDriver(driver);
-                        }
-                    }
+                    currentTab.value = 'veiculos';
                 }
             };
 
@@ -2498,7 +1749,7 @@
                     const dataToExport = filteredPreventivesForTable.value.map(v => ({
                         'Placa': v.placa,
                         'Modelo': v.modelo,
-                        'Operação (Unidade)': getVehicleOperation(v),
+                        'Operação (Nome Reduzido)': v.operacao || v.contrato || '—',
                         'Último Abastecimento (Data)': v.dataUltimoAbastecimento || '—',
                         'KM Atual (Hodômetro)': v.kmAtual,
                         'KM Última Preventiva (Manual)': v.ultimaPreventivaKm,
@@ -2671,18 +1922,6 @@
                         // Filtro temporário para achar apenas o registro mais recente de cada placa no Excel
                         const mostRecentMap = {}; 
 
-                        const parseISODate = (value) => {
-                            if (!value) return null;
-                            const date = new Date(value);
-                            return isNaN(date.getTime()) ? null : date;
-                        };
-
-                        const isTelemetryFresh = (vehicle) => {
-                            const lastSync = parseISODate(vehicle.ultimaAtualizacaoRastreador || vehicle.ultima_atualizacao_rastreador);
-                            if (!lastSync) return false;
-                            return (Date.now() - lastSync.getTime()) <= (20 * 60 * 1000); // 20 minutos
-                        };
-
                         for (let i = 0; i < jsonData.length; i++) {
                             const row = jsonData[i];
                             try {
@@ -2708,14 +1947,12 @@
                                 const systemJsDate = convertToJsDate(systemDateStr);
 
                                 if (jsDate > systemJsDate) {
-                                    const preserveLiveOdometer = isTelemetryFresh(exists) && exists.kmAtual > 0;
                                     if (!mostRecentMap[placa] || jsDate > mostRecentMap[placa].jsDate) {
                                         mostRecentMap[placa] = {
                                             hodometro,
                                             formattedDate: parseDateValue(rawDate),
                                             nomeReduzido: nomeReduzido ? String(nomeReduzido).trim() : '',
-                                            jsDate,
-                                            useExcelKm: !preserveLiveOdometer
+                                            jsDate
                                         };
                                     }
                                 }
@@ -2730,13 +1967,9 @@
                         veiculos.value.forEach(v => {
                             const match = mostRecentMap[v.placa];
                             if (match) {
-                                if (match.useExcelKm) {
-                                    v.kmAtual = match.hodometro;
-                                }
+                                v.kmAtual = match.hodometro;
                                 v.dataUltimoAbastecimento = match.formattedDate;
-                                if (!v.operacao || !String(v.operacao).trim()) {
-                                    v.operacao = match.nomeReduzido;
-                                }
+                                v.operacao = match.nomeReduzido;
                                 updatedCount++;
                             }
                         });
@@ -2746,17 +1979,13 @@
                         // Envia para o Supabase
                         if (dbConfigured && supabaseClient) {
                             for (const v of veiculos.value) {
-                                const match = mostRecentMap[v.placa];
-                                if (match) {
+                                if (mostRecentMap[v.placa]) {
                                     try {
-                                        const payload = {
+                                        await supabaseClient.from('veiculos').update({
+                                            km_atual: v.kmAtual,
                                             data_ultimo_abastecimento: v.dataUltimoAbastecimento,
                                             operacao: v.operacao
-                                        };
-                                        if (match.useExcelKm) {
-                                            payload.km_atual = v.kmAtual;
-                                        }
-                                        await supabaseClient.from('veiculos').update(payload).eq('placa', v.placa);
+                                        }).eq('placa', v.placa);
                                     } catch (err) {
                                         console.error("Erro ao salvar no banco:", err);
                                     }
@@ -2764,7 +1993,7 @@
                             }
                         }
 
-                        alert(`Planilha processada! ${updatedCount} veículos atualizados com base no abastecimento mais recente. A telemetria ZUQ continua sendo a fonte principal de hodômetro quando disponível.`);
+                        alert(`Planilha processada! ${updatedCount} veículos atualizados com base no abastecimento mais atual.`);
                         e.target.value = ''; 
                     } catch (err) {
                         console.error("Erro ao analisar dados:", err);
@@ -3290,11 +2519,10 @@
                         const query = searchQueryPreventive.value.toLowerCase().trim();
                         const placa = v.placa ? v.placa.toLowerCase() : '';
                         const modelo = v.modelo ? v.modelo.toLowerCase() : '';
-                        const base = v.base ? v.base.toLowerCase() : '';
                         const operacao = v.operacao ? v.operacao.toLowerCase() : '';
                         const contrato = v.contrato ? v.contrato.toLowerCase() : '';
                         
-                        if (!placa.includes(query) && !modelo.includes(query) && !operacao.includes(query) && !contrato.includes(query) && !base.includes(query)) {
+                        if (!placa.includes(query) && !modelo.includes(query) && !operacao.includes(query) && !contrato.includes(query)) {
                             return false;
                         }
                     }
@@ -3413,252 +2641,10 @@
                 return dateStr;
             };
 
-            const formatDateTime = (dateStr) => {
-                if (!dateStr) return '';
-                const parsed = new Date(dateStr);
-                if (isNaN(parsed.getTime())) return String(dateStr);
-                return parsed.toLocaleString('pt-BR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-            };
-
-            const getVehicleOperation = (vehicle) => {
-                if (!vehicle) return '—';
-                const base = String(vehicle.base || '').trim();
-                const contrato = String(vehicle.contrato || '').trim();
-                const operacao = String(vehicle.operacao || '').trim();
-                return base || contrato || operacao || '—';
-            };
-
-            const isTelemetryLive = (vehicle) => {
-                if (!vehicle || !vehicle.ultimaAtualizacaoRastreador) return false;
-                const diff = Date.now() - new Date(vehicle.ultimaAtualizacaoRastreador).getTime();
-                return diff <= 1000 * 60 * 15;
-            };
-
-            const countTelemetryOnlineVehicles = computed(() => {
-                return veiculos.value.filter(isTelemetryLive).length;
-            });
-
-            const isTelemetryFresh = (vehicle) => {
-                if (!vehicle) return false;
-                const timestamp = vehicle.ultimaAtualizacaoRastreador || vehicle.ultima_atualizacao_rastreador;
-                if (!timestamp) return false;
-                const parsed = new Date(timestamp);
-                if (isNaN(parsed.getTime())) return false;
-                return (Date.now() - parsed.getTime()) <= 20 * 60 * 1000;
-            };
-
-            const latestZuqUpdate = computed(() => {
-                const timestamps = veiculos.value
-                    .map(v => v.ultimaAtualizacaoRastreador || v.ultima_atualizacao_rastreador)
-                    .filter(Boolean)
-                    .map(t => new Date(t))
-                    .filter(d => !isNaN(d.getTime()));
-                if (timestamps.length === 0) return null;
-                return new Date(Math.max(...timestamps.map(d => d.getTime())));
-            });
-
-            const getLatestZuqUpdateLabel = () => {
-                if (!latestZuqUpdate.value) return 'Dados ZUQ não sincronizados ainda';
-                return `Última atualização ZUQ: ${formatDateTime(latestZuqUpdate.value.toISOString())}`;
-            };
-
-            const setZuqStatus = (message, level = 'warning', error = '') => {
-                zuqStatus.value = message;
-                zuqStatusLevel.value = level;
-                zuqLastAttempt.value = new Date().toISOString();
-                zuqLastError.value = error;
-            };
-
-            const getZuqStatusClass = () => {
-                if (zuqStatusLevel.value === 'ok') return 'bg-emerald-100 text-emerald-700';
-                if (zuqStatusLevel.value === 'error') return 'bg-red-100 text-red-700';
-                return 'bg-amber-100 text-amber-700';
-            };
-
             // Nova função blindada e rápida para formatação com pontos de milhar independentemente do navegador
             const formatNumberWithDots = (num) => {
                 if (num === undefined || num === null) return '0';
                 return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-            };
-
-            // ==========================================================
-            // FUNÇÕES DE INTEGRAÇÃO ZUQ - TELEMETRIA EM TEMPO REAL
-            // ==========================================================
-
-            // Sincroniza lista de motoristas cadastrados na ZUQ
-            const fetchDriversFromZuq = async () => {
-                try {
-                    const response = await fetch('https://app.zuq.com.br/api/contact/drivers/v2/list', {
-                        headers: { 'Authorization': ZUQ_TOKEN }
-                    });
-                    if (!response.ok) {
-                        if (response.status === 401 || response.status === 403) {
-                            setZuqStatus('Token ZUQ inválido', 'error', `HTTP ${response.status}`);
-                        } else {
-                            setZuqStatus(`Erro ao validar ZUQ (${response.status})`, 'error', response.statusText || `HTTP ${response.status}`);
-                        }
-                        return;
-                    }
-                    const data = await response.json();
-                    motoristasZuq.value = data.content || [];
-                    setZuqStatus('Token ZUQ válido — drivers carregados', 'ok');
-                } catch (e) {
-                    setZuqStatus('Falha ao carregar motoristas ZUQ', 'error', e.message);
-                    console.error("Erro ao carregar motoristas da ZUQ (normal se offline):", e);
-                }
-            };
-
-            // Sincroniza localização, ignição, velocidade e odômetro em tempo real
-            const fetchZuqTelemetry = async () => {
-                try {
-                    const response = await fetch('https://app.zuq.com.br/api/integration/realtime?v2=true', {
-                        headers: { 'Authorization': ZUQ_TOKEN }
-                    });
-                    if (!response.ok) {
-                        if (response.status === 401 || response.status === 403) {
-                            setZuqStatus('Token ZUQ inválido', 'error', `HTTP ${response.status}`);
-                        } else {
-                            setZuqStatus(`Erro ao acessar ZUQ (${response.status})`, 'error', response.statusText || `HTTP ${response.status}`);
-                        }
-                        return;
-                    }
-                    const data = await response.json();
-                    setZuqStatus('ZUQ conectado — telemetria atualizada', 'ok');
-                    for (const item of data) {
-                        const found = veiculos.value.find(v => v.placa && v.placa.toUpperCase().trim() === item.licensePlate.toUpperCase().trim());
-                        if (found) {
-                            found.kmAtual = Math.round(item.odometer / 1000);
-                            found.lat = item.lat;
-                            found.lon = item.lon;
-                            found.ignicao = item.ignition;
-                            found.velocidade = Math.round(item.speed);
-                            found.cardId = item.cardId;
-                            found.ultimaAtualizacaoRastreador = item.gpsTime;
-
-                            if (!found.path) found.path = [];
-                            const currentPoint = {
-                                lat: item.lat,
-                                lon: item.lon,
-                                time: item.gpsTime || item.timestamp || new Date().toISOString(),
-                                speed: item.speed || 0,
-                                ignition: item.ignition || false,
-                                odometer: item.odometer || null
-                            };
-                            const lastPoint = found.path[found.path.length - 1];
-                            if (!lastPoint || lastPoint.lat !== item.lat || lastPoint.lon !== item.lon || lastPoint.time !== currentPoint.time) {
-                                found.path.push(currentPoint);
-                                if (found.path.length > 200) found.path.shift();
-                            }
-
-                            updateDriverHistory(item);
-                            await updateTelemetryInDatabase(found);
-                        }
-                    }
-                } catch (e) {
-                    setZuqStatus('Falha ao sincronizar telemetria ZUQ', 'error', e.message);
-                    console.error("Erro ao sincronizar telemetria da ZUQ (normal se offline):", e);
-                }
-            };
-
-            // Salva dados de telemetria no Supabase
-            const updateTelemetryInDatabase = async (v) => {
-                if (dbConfigured && supabaseClient) {
-                    try {
-                        await supabaseClient.from('veiculos').update({
-                            km_atual: v.kmAtual,
-                            lat: v.lat,
-                            lon: v.lon,
-                            ignicao: v.ignicao,
-                            velocidade: v.velocidade,
-                            card_id: v.cardId,
-                            ultima_atualizacao_rastreador: v.ultimaAtualizacaoRastreador ? new Date(v.ultimaAtualizacaoRastreador).toISOString() : null
-                        }).eq('placa', v.placa);
-                    } catch (err) {
-                        console.error("Erro ao salvar telemetria no Supabase:", err);
-                    }
-                }
-            };
-
-            // Retorna o nome do motorista pelo ID do crachá
-            const getDriverNameByCardId = (cardId) => {
-                if (!cardId || cardId === 0 || cardId === '0') return 'Não identificado';
-                const found = motoristasZuq.value.find(m => String(m.driverKeyId) === String(cardId) || String(m.registration) === String(cardId));
-                return found ? found.name : `Crachá #${cardId}`;
-            };
-
-            // Renderiza o mapa Leaflet com os veículos em tempo real
-            const renderLeafletMap = () => {
-                const mapEl = document.getElementById('map');
-                if (!mapEl) return;
-
-                if (!mapInstance) {
-                    mapInstance = L.map('map').setView([-15, -45], 5);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        attribution: '© OpenStreetMap'
-                    }).addTo(mapInstance);
-                    markersLayer = L.layerGroup().addTo(mapInstance);
-                }
-
-                markersLayer.clearLayers();
-                const activeCoords = [];
-
-                veiculos.value.forEach(v => {
-                    if (v.lat && v.lon) {
-                        const markerColor = v.ignicao ? 'green' : 'gray';
-                        const statusText = v.ignicao ? 'Ligado' : 'Desligado';
-                        const driverName = getDriverNameByCardId(v.cardId);
-
-                        const marker = L.circleMarker([v.lat, v.lon], {
-                            radius: 8,
-                            fillColor: markerColor,
-                            color: '#fff',
-                            weight: 2,
-                            opacity: 1,
-                            fillOpacity: 0.8
-                        });
-
-                        marker.bindPopup(`
-                            <div style="font-family: sans-serif; font-size: 11px;">
-                                <strong style="font-size: 13px; color: #1e293b;">Placa: ${v.placa}</strong><br>
-                                <span style="color: #64748b;">Modelo: ${v.modelo}</span><br>
-                                <hr style="margin: 6px 0; border: 0; border-top: 1px solid #f1f5f9;">
-                                <strong>Status:</strong> <span style="color: ${v.ignicao ? '#16a34a' : '#64748b'}; font-weight: bold;">● ${statusText}</span><br>
-                                <strong>Velocidade:</strong> ${v.velocidade} km/h<br>
-                                <strong>Motorista:</strong> ${driverName}
-                            </div>
-                        `);
-
-                        markersLayer.addLayer(marker);
-                        activeCoords.push([v.lat, v.lon]);
-                    }
-                });
-
-                if (routeLayer) {
-                    routeLayer.remove();
-                    routeLayer = null;
-                }
-
-                if (selectedVehicle.value && selectedVehicle.value.path && selectedVehicle.value.path.length > 1) {
-                    const pathPoints = filteredVehiclePath(selectedVehicle.value);
-                    if (pathPoints.length > 1) {
-                        routeLayer = L.polyline(pathPoints.map(p => [p.lat, p.lon]), {
-                            color: '#2563eb',
-                            weight: 4,
-                            opacity: 0.9,
-                            dashArray: '5,6'
-                        }).addTo(mapInstance);
-                    }
-                }
-
-                if (activeCoords.length > 0) {
-                    mapInstance.fitBounds(activeCoords, { padding: [50, 50] });
-                }
             };
 
             return {
@@ -3672,32 +2658,19 @@
                 saveVehicleDocument, openEditBasicModal, saveBasicEdit, openEditSpecModal, saveSpecEdit,
                 saveUser, deleteUser, saveVehicle, deleteVehicle, deleteLaudo,
                 availableContracts, countStatus, filteredLaudos, filteredVeiculos,
-                setCardFilter, clearFilters, formatFilterName, getStatusLabel, getStatusBadgeClass, getResultadoBadgeClass, formatDate, formatDateTime,
+                setCardFilter, clearFilters, formatFilterName, getStatusLabel, getStatusBadgeClass, getResultadoBadgeClass, formatDate,
                 formatNumberWithDots,
                 selectedClassFilter, preventiveCardFilter, searchQueryPreventive, filteredPreventivesForTable, setPreventiveCardFilter, exportPreventiveReport,
                 compliancePercentage, totalPreventiveCount, regionalComplianceRanking,
                 showMobileFilters,
-                routeFilterFrom, routeFilterTo, availabilitySearchQuery, selectedRouteTimeLabel, selectedRouteDistance, selectedRouteTotalMs, selectedRouteActiveMs, selectedRouteInactiveMs, selectedRoutePoints, selectedRoutePath, selectedRouteExportPath, selectedRouteExportCount, selectedRoutePathToday, selectedRoutePointsToday, selectedRouteDistanceToday, selectedRouteTotalMsToday, selectedRouteActiveMsToday, selectedRouteInactiveMsToday, applyQuickRouteRange, downloadRouteCsv, filteredAvailabilityVehicles, filteredVehiclePath, formatDuration,
-                selectedDriver, selectDriver, getDriverPhone, getDriverRecords, getDriverVehicles, getDriverInfractionCount, getDriverCurrentSpeed, getDriverAverageSpeed,
                 getDaysSinceLastAbastecimento, isVehicleActive,
-                countInactiveVehicles, averageOverdueKm, inactivePlates,
-                motoristasZuq, vehiclesOverspeed, vehiclesNoSignal, vehiclesWithDriver, trackedPathCount,
-                latestZuqUpdate, getLatestZuqUpdateLabel,
-                zuqStatus, zuqStatusLevel, zuqLastAttempt, zuqLastError, getZuqStatusClass,
-                getVehicleOperation, countTelemetryOnlineVehicles,
-                getDriverNameByCardId
+                countInactiveVehicles, averageOverdueKm, inactivePlates
             };
         }
     }).mount('#app');
-    }
-
-    initApp();
 </script>
 </body>
 </html>
-
-
-
 
 
 
