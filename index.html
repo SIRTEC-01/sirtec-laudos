@@ -2396,52 +2396,86 @@
                 }
             };
 
-            const handleLogin = () => {
+            const handleLogin = async () => {
+                loginError.value = ''; // Limpa erro anterior ANTES de tentar
+
+                // Garante que os dados estejam carregados antes de validar
+                // (essencial em modo local após logout que limpou a memória)
+                if (usuarios.value.length === 0) {
+                    await loadAllData();
+                }
+
                 const usuarioDigitado = loginForm.value.username.trim().toLowerCase();
                 const senhaDigitada = loginForm.value.password;
 
-                let contaValida = usuarios.value.find(u => 
-                    u.email.toLowerCase() === usuarioDigitado && 
+                if (!usuarioDigitado || !senhaDigitada) {
+                    loginError.value = 'Preencha o usuário e a senha.';
+                    return;
+                }
+
+                let contaValida = usuarios.value.find(u =>
+                    u.email.toLowerCase() === usuarioDigitado &&
                     u.senha === senhaDigitada
                 );
 
+                // Conta hardcoded de emergência (dono)
                 if (!contaValida && usuarioDigitado === 'dono@sirtec.com.br' && senhaDigitada === 'Dono@2024') {
                     contaValida = { email: 'dono@sirtec.com.br', senha: 'Dono@2024', role: 'admin_geral' };
                 }
 
                 if (contaValida) {
-                    logged.value = true;
                     currentUser.value = contaValida;
+                    currentTab.value = 'laudos';        // Garante aba inicial limpa
+                    selectedVehicle.value = null;       // Sem veículo selecionado ao entrar
                     loginError.value = '';
+                    logged.value = true;                // Dispara v-if no template por último
                 } else {
                     loginError.value = 'Usuário ou senha inválidos.';
                 }
             };
 
             const logout = () => {
-                // Destrói o mapa antes de limpar o estado para não vazar instância Leaflet
+                // 1. Destrói o mapa PRIMEIRO — antes de qualquer mutação reativa
                 destroyMap();
-                logged.value = false;
-                currentUser.value = null;
+
+                // 2. Limpa todos os estados de navegação e seleção
                 selectedVehicle.value = null;
+                selectedDriver.value = null;
+                availabilitySearchQuery.value = '';
+                routeFilterFrom.value = '';
+                routeFilterTo.value = '';
                 currentTab.value = 'laudos';
+
+                // 3. Limpa formulário de login para nova sessão
                 loginForm.value = { username: '', password: '' };
+                loginError.value = '';
                 showPassword.value = false;
+
+                // 4. Limpa dados em memória para evitar que o próximo login
+                //    acesse dados de sessão anterior (especialmente modo local)
+                veiculos.value = [];
+                laudos.value = [];
+                usuarios.value = [];
+
+                // 5. Por último: dispara a troca de v-if no template
+                currentUser.value = null;
+                logged.value = false;
             };
 
-            // MÉTODO CENTRALIZADO DE NAVEGAÇÃO DE ABAS.
-            // Substitui as mutações inline nos botões do template (@click="currentTab = 'x'; selectedVehicle = null").
-            // Garante que o mapa seja destruído ANTES de qualquer mudança de estado, evitando
-            // que o Leaflet tente operar sobre um container que o Vue está prestes a ocultar/destruir.
             const navegarParaAba = (aba) => {
-                // Se estamos saindo da aba de disponibilidade, destrói o mapa imediatamente,
-                // antes de qualquer mutação reativa que possa acionar o watch ou re-render do template
+                // Destrói o mapa ANTES de qualquer mutação reativa
+                // para evitar que o Leaflet opere sobre container oculto
                 if (currentTab.value === 'disponibilidade' && aba !== 'disponibilidade') {
                     destroyMap();
                 }
-                // Reseta flags de estado ao navegar — garante que a aba sempre abre limpa
+
+                // Reseta todos os estados de seleção/filtro ao navegar
                 selectedVehicle.value = null;
+                selectedDriver.value = null;           // evita motorista "fantasma"
                 availabilitySearchQuery.value = '';
+                showMobileFilters.value = false;       // fecha painel mobile ao trocar aba
+
+                // Troca de aba por último — dispara o watch e re-render
                 currentTab.value = aba;
             };
 
@@ -2470,33 +2504,33 @@
                 const found = veiculos.value.find(v => v.placa === placa);
                 if (!found) return;
 
-                // Se estamos na aba disponibilidade mas vamos sair dela (ex: clique em laudo
-                // que redireciona para veiculos), destrói o mapa ANTES de mudar o estado.
-                // Isso evita que o Leaflet ainda esteja vinculado ao container quando o Vue
-                // processa a mudança de currentTab e altera o v-show do #map.
                 const estavaNaDisponibilidade = currentTab.value === 'disponibilidade';
-                if (estavaNaDisponibilidade && currentTab.value !== 'disponibilidade') {
-                    destroyMap();
-                }
 
-                selectedVehicle.value = found;
+                if (estavaNaDisponibilidade) {
+                    // Permanece na aba disponibilidade — apenas seleciona o veículo
+                    selectedVehicle.value = found;
+                    availabilitySearchQuery.value = ''; // Fecha o dropdown de busca
 
-                if (currentTab.value !== 'disponibilidade') {
-                    // Vindo de outra aba (laudos, etc.) → destrói mapa por precaução e vai para veiculos
-                    destroyMap();
-                    currentTab.value = 'veiculos';
-                } else {
-                    // Permanece na aba disponibilidade — seleciona motorista se houver
+                    // Seleciona o motorista associado, se houver
                     if (found.cardId) {
-                        const driver = vehiclesWithDriver.value.find(d => String(d.cardId) === String(found.cardId));
+                        const driver = vehiclesWithDriver.value.find(
+                            d => String(d.cardId) === String(found.cardId)
+                        );
                         if (driver) selectDriver(driver);
                     }
+
                     // Redesenha o mapa APÓS o Vue processar a mudança de selectedVehicle.
-                    // NÃO usa isRenderingMap aqui pois este nextTick é disparado pela interação
-                    // do usuário (clique), não pelo watch — são ciclos distintos.
+                    // Ciclo separado do watch (interação do usuário), sem risco de race condition.
                     nextTick(() => {
                         renderLeafletMap();
                     });
+
+                } else {
+                    // Vindo de outra aba (laudos, preventivas, etc.)
+                    // Destrói o mapa por precaução antes de mudar o estado
+                    destroyMap();
+                    selectedVehicle.value = found;
+                    currentTab.value = 'veiculos'; // Redireciona para a ficha do veículo
                 }
             };
 
