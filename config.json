@@ -1,7 +1,7 @@
 {
   "appName": "Sirtec - Controle de Laudos e Frota",
-  "env": "development",
-  "supabaseUrl": "https://supabase.co",
+  "env": "production",
+  "supabaseUrl": "https://regfencgflzcypgqpbjb.supabase.co",
   "supabaseAnonKey": "sb_publishable_DOqgEdQ8-1pU7mCKf_-lRg_2ZIgYp-4",
   "zuqToken": "QQ5R0DL2WW50NSXVCSHFDOZLTR66JHOWIF7O42X7GDBAQP7OHPY7BW6PM610IZMP25MPON632MVOA5W051XR8P3YQN2C16KN2O4164UMUHBL62UB5DX2N5UVH2E6VVLL",
   "supportEmail": "suporte@sirtec.com.br",
@@ -10,8 +10,8 @@
   "googleApiKey": "AIzaSyAb-g8HMqiKQ8iw9e_Mj0wcg6-Rz4rMQR0",
   "models": [
     {
-      "id": "gemini-3.5-flash",
-      "title": "Gemini 3.5 Flash (Gratuito)"
+      "id": "gemini-1.5-flash",
+      "title": "Gemini 1.5 Flash (Gratuito)"
     },
     {
       "id": "gemini-1.5-pro",
