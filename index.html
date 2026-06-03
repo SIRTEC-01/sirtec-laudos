@@ -1088,6 +1088,126 @@
                             </div>
                         </div>
 
+                        <!-- =====================================================
+                             PAINEL DE DISPONIBILIDADE MENSAL — NOVO
+                             ===================================================== -->
+                        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                            <div class="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div>
+                                    <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">📅 Disponibilidade Mensal da Frota</h3>
+                                    <p class="text-[11px] text-slate-400 mt-0.5">Baseado em registros de ignição via ZUQ · Mês atual</p>
+                                </div>
+                                <div class="flex items-center gap-3 text-xs">
+                                    <div class="bg-emerald-50 border border-emerald-200 text-emerald-700 font-black px-4 py-2 rounded-xl text-sm">
+                                        {{ disponibilidadeMensal.percentual }}% <span class="font-normal text-emerald-600 text-[10px]">disponibilidade</span>
+                                    </div>
+                                    <div class="bg-blue-50 border border-blue-200 text-blue-700 font-bold px-3 py-2 rounded-xl">
+                                        {{ disponibilidadeMensal.ativos }}/{{ veiculos.length }} rodaram
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Cards de resumo mensal -->
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-slate-100">
+                                <div class="bg-white p-4 text-center">
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Rodaram no mês</span>
+                                    <div class="text-2xl font-black text-emerald-600 mt-1">{{ disponibilidadeMensal.ativos }}</div>
+                                    <span class="text-[10px] text-slate-400">de {{ veiculos.length }} veículos</span>
+                                </div>
+                                <div class="bg-white p-4 text-center">
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Parados no mês</span>
+                                    <div class="text-2xl font-black text-slate-500 mt-1">{{ disponibilidadeMensal.parados }}</div>
+                                    <span class="text-[10px] text-slate-400">sem rota registrada</span>
+                                </div>
+                                <div class="bg-white p-4 text-center">
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Dias úteis do mês</span>
+                                    <div class="text-2xl font-black text-blue-600 mt-1">{{ disponibilidadeMensal.diasUteis }}</div>
+                                    <span class="text-[10px] text-slate-400">dias corridos até hoje</span>
+                                </div>
+                                <div class="bg-white p-4 text-center">
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Alerta parado &gt; 5 dias</span>
+                                    <div class="text-2xl font-black text-red-600 mt-1 animate-pulse">{{ disponibilidadeMensal.alertaParados }}</div>
+                                    <span class="text-[10px] text-slate-400">veículos críticos</span>
+                                </div>
+                            </div>
+
+                            <!-- Tabela por veículo -->
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-slate-100 text-left text-xs whitespace-nowrap">
+                                    <thead class="bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                        <tr>
+                                            <th class="px-4 py-3">Placa</th>
+                                            <th class="px-4 py-3">Modelo</th>
+                                            <th class="px-4 py-3">Contrato</th>
+                                            <th class="px-4 py-3">Dias com rota</th>
+                                            <th class="px-4 py-3">Último movimento</th>
+                                            <th class="px-4 py-3 text-center">Status mês</th>
+                                            <th class="px-4 py-3 text-center">Disponibilidade</th>
+                                            <th class="px-4 py-3">Situação estimada</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-50">
+                                        <tr v-for="row in disponibilidadePorVeiculo" :key="row.placa"
+                                            class="hover:bg-slate-50 cursor-pointer transition-colors"
+                                            @click="selectVehicleByPlate(row.placa)">
+                                            <td class="px-4 py-3 font-black text-slate-900">{{ row.placa }}</td>
+                                            <td class="px-4 py-3 text-slate-600">{{ row.modelo }}</td>
+                                            <td class="px-4 py-3 text-slate-500 uppercase font-medium">{{ row.contrato || '—' }}</td>
+                                            <td class="px-4 py-3">
+                                                <div class="flex items-center gap-2">
+                                                    <div class="w-20 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                                        <div class="h-1.5 rounded-full transition-all"
+                                                             :class="row.percentualMes >= 60 ? 'bg-emerald-500' : row.percentualMes >= 30 ? 'bg-amber-400' : 'bg-red-400'"
+                                                             :style="{ width: row.percentualMes + '%' }"></div>
+                                                    </div>
+                                                    <span class="font-bold text-slate-700">{{ row.diasAtivos }} dias</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3 text-slate-500">{{ row.ultimoMovimento }}</td>
+                                            <td class="px-4 py-3 text-center">
+                                                <span :class="[
+                                                    'px-2 py-0.5 rounded-full text-[10px] font-black uppercase',
+                                                    row.status === 'ativo' ? 'bg-emerald-100 text-emerald-700' :
+                                                    row.status === 'recente' ? 'bg-blue-100 text-blue-700' :
+                                                    row.status === 'atencao' ? 'bg-amber-100 text-amber-700' :
+                                                    'bg-red-100 text-red-700'
+                                                ]">
+                                                    {{ row.statusLabel }}
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3 text-center">
+                                                <span :class="[
+                                                    'font-black text-sm',
+                                                    row.percentualMes >= 60 ? 'text-emerald-600' :
+                                                    row.percentualMes >= 30 ? 'text-amber-500' : 'text-red-500'
+                                                ]">{{ row.percentualMes }}%</span>
+                                            </td>
+                                            <td class="px-4 py-3 text-slate-500 font-medium">{{ row.situacao }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Barra de disponibilidade geral -->
+                            <div class="px-5 py-4 border-t border-slate-100 bg-slate-50">
+                                <div class="flex items-center justify-between text-xs text-slate-500 mb-1.5">
+                                    <span class="font-semibold">Disponibilidade geral da frota no mês</span>
+                                    <span class="font-black text-slate-700">{{ disponibilidadeMensal.percentual }}%</span>
+                                </div>
+                                <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                                    <div class="h-2.5 rounded-full transition-all duration-700"
+                                         :class="disponibilidadeMensal.percentual >= 60 ? 'bg-emerald-500' : disponibilidadeMensal.percentual >= 30 ? 'bg-amber-400' : 'bg-red-500'"
+                                         :style="{ width: disponibilidadeMensal.percentual + '%' }"></div>
+                                </div>
+                                <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                                    <span>0%</span>
+                                    <span class="text-amber-500 font-bold">Meta: 75%</span>
+                                    <span>100%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- FIM DO PAINEL MENSAL -->
+
                         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                             <!-- Mapa (7 Colunas) -->
                             <div class="lg:col-span-7 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-4">
@@ -3910,6 +4030,133 @@
                 }
             };
 
+            // =========================================================
+            // DISPONIBILIDADE MENSAL — computed properties
+            // Calcula dias ativos/parados por veículo no mês corrente
+            // usando o histórico de rota (path) da ZUQ.
+            // =========================================================
+
+            // Retorna quantos dias distintos um veículo teve rota registrada no mês atual
+            const getDiasAtivosNoMes = (vehicle) => {
+                if (!vehicle) return 0;
+
+                const agora = new Date();
+                const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
+
+                // FONTE 1: path da ZUQ (mais preciso)
+                if (vehicle.path && vehicle.path.length > 0) {
+                    const diasSet = new Set();
+                    vehicle.path.forEach(point => {
+                        if (!point.time) return;
+                        const d = new Date(point.time);
+                        if (d >= inicioMes && d <= agora) {
+                            diasSet.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
+                        }
+                    });
+                    if (diasSet.size > 0) return diasSet.size;
+                }
+
+                // FONTE 2: dataUltimoAbastecimento como fallback (indica ao menos 1 dia ativo)
+                if (vehicle.dataUltimoAbastecimento) {
+                    try {
+                        const parts = vehicle.dataUltimoAbastecimento.split(' ')[0].split('/');
+                        if (parts.length === 3) {
+                            const d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+                            if (d >= inicioMes && d <= agora) return 1;
+                        }
+                    } catch(e) {}
+                }
+
+                return 0;
+            };
+
+            // Retorna o timestamp do último ponto de rota do veículo
+            const getUltimoMovimento = (vehicle) => {
+                if (!vehicle) return null;
+                if (vehicle.ultimaAtualizacaoRastreador) return new Date(vehicle.ultimaAtualizacaoRastreador);
+                if (vehicle.path && vehicle.path.length > 0) {
+                    const pontos = vehicle.path.filter(p => p.time).map(p => new Date(p.time));
+                    if (pontos.length > 0) return new Date(Math.max(...pontos));
+                }
+                return null;
+            };
+
+            // Formata o último movimento em texto legível
+            const formatUltimoMovimento = (vehicle) => {
+                const ultimo = getUltimoMovimento(vehicle);
+                if (!ultimo) return 'Sem registro';
+                const diff = Math.floor((Date.now() - ultimo.getTime()) / (1000 * 60 * 60 * 24));
+                if (diff === 0) return 'Hoje';
+                if (diff === 1) return 'Ontem';
+                if (diff <= 30) return `${diff} dias atrás`;
+                return ultimo.toLocaleDateString('pt-BR');
+            };
+
+            // Dias corridos no mês atual até hoje
+            const diasCorridos = computed(() => {
+                const agora = new Date();
+                return agora.getDate();
+            });
+
+            // Tabela completa por veículo com todos os dados de disponibilidade
+            const disponibilidadePorVeiculo = computed(() => {
+                return veiculos.value.map(v => {
+                    const diasAtivos = getDiasAtivosNoMes(v);
+                    const percentualMes = diasCorridos.value > 0
+                        ? Math.round((diasAtivos / diasCorridos.value) * 100)
+                        : 0;
+
+                    const ultimo = getUltimoMovimento(v);
+                    const diasSemMovimento = ultimo
+                        ? Math.floor((Date.now() - ultimo.getTime()) / (1000 * 60 * 60 * 24))
+                        : 999;
+
+                    // Classificação de status
+                    let status, statusLabel, situacao;
+                    if (v.ignicao) {
+                        status = 'ativo'; statusLabel = '● Em rota'; situacao = 'Ligado agora';
+                    } else if (diasSemMovimento <= 1) {
+                        status = 'recente'; statusLabel = 'Recente'; situacao = 'Parado hoje';
+                    } else if (diasSemMovimento <= 5) {
+                        status = 'atencao'; statusLabel = 'Atenção'; situacao = `Parado ${diasSemMovimento}d`;
+                    } else {
+                        status = 'parado'; statusLabel = '● Parado'; situacao = `Inativo ${diasSemMovimento}d`;
+                    }
+
+                    return {
+                        placa: v.placa,
+                        modelo: v.modelo || '—',
+                        contrato: v.contrato || '',
+                        diasAtivos,
+                        percentualMes,
+                        ultimoMovimento: formatUltimoMovimento(v),
+                        diasSemMovimento,
+                        status,
+                        statusLabel,
+                        situacao
+                    };
+                }).sort((a, b) => b.diasAtivos - a.diasAtivos);
+            });
+
+            // Resumo consolidado da frota no mês
+            const disponibilidadeMensal = computed(() => {
+                const total = veiculos.value.length;
+                if (total === 0) return { percentual: 0, ativos: 0, parados: 0, diasUteis: 0, alertaParados: 0 };
+
+                const ativos = disponibilidadePorVeiculo.value.filter(r => r.diasAtivos > 0).length;
+                const parados = total - ativos;
+                const alertaParados = disponibilidadePorVeiculo.value.filter(r => r.diasSemMovimento > 5).length;
+                const percentual = Math.round((ativos / total) * 100);
+
+                return {
+                    percentual,
+                    ativos,
+                    parados,
+                    diasUteis: diasCorridos.value,
+                    alertaParados
+                };
+            });
+
             return {
                 logged, currentUser, loginForm, loginError, handleLogin, logout, handleLogoError, logoExists, canEdit, dbConfigured, showPassword,
                 navegarParaAba,
@@ -3935,7 +4182,8 @@
                 latestZuqUpdate, getLatestZuqUpdateLabel,
                 zuqStatus, zuqStatusLevel, zuqLastAttempt, zuqLastError, getZuqStatusClass,
                 getVehicleOperation, countTelemetryOnlineVehicles,
-                getDriverNameByCardId
+                getDriverNameByCardId,
+                disponibilidadeMensal, disponibilidadePorVeiculo, diasCorridos
             };
         }
     }).mount('#app');
