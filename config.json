@@ -3,6 +3,7 @@
   "env": "development",
   "supabaseUrl": "https://supabase.co",
   "supabaseAnonKey": "sb_publishable_DOqgEdQ8-1pU7mCKf_-lRg_2ZIgYp-4",
+  "zuqToken": "QQ5R0DL2WW50NSXVCSHFDOZLTR66JHOWIF7O42X7GDBAQP7OHPY7BW6PM610IZMP25MPON632MVOA5W051XR8P3YQN2C16KN2O4164UMUHBL62UB5DX2N5UVH2E6VVLL",
   "supportEmail": "suporte@sirtec.com.br",
   "defaultLocale": "pt-BR",
   "modelProvider": "google",
