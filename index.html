@@ -3882,7 +3882,9 @@
                         return;
                     }
                     const data = await response.json();
-                    motoristasZuq.value = data.content || data || [];
+                    // Filtra registros inválidos: ignora motoristas sem nome ou placa nulos/indefinidos
+                    const rawList = data.content || data || [];
+                    motoristasZuq.value = Array.isArray(rawList) ? rawList.filter(m => m != null) : [];
                     setZuqStatus('ZUQ conectado via proxy Supabase — motoristas carregados', 'ok');
                 } catch (e) {
                     setZuqStatus('Falha ao carregar motoristas ZUQ', 'error', e.message);
@@ -3914,7 +3916,10 @@
                         }
                         setZuqStatus(`ZUQ conectado — ${data.length} veículos sincronizados`, 'ok');
                         for (const item of data) {
-                            const found = veiculos.value.find(v => v.placa && v.placa.toUpperCase().trim() === (item.licensePlate || '').toUpperCase().trim());
+                            // Trava de segurança: pula registros sem placa válida (null, undefined ou vazia)
+                            if (!item || item.licensePlate == null || String(item.licensePlate).trim() === '') continue;
+                            const itemPlate = String(item.licensePlate).toUpperCase().trim();
+                            const found = veiculos.value.find(v => v.placa && String(v.placa).toUpperCase().trim() === itemPlate);
                             if (found) {
                                 found.kmAtual = Math.round((item.odometer || 0) / 1000);
                                 found.lat = item.lat;
