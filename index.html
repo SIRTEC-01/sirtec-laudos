@@ -1834,7 +1834,7 @@
 
     async function loadConfig() {
         try {
-            const response = await fetch('config.json', { cache: 'no-store' });
+            const response = await fetch('./config.json', { cache: 'no-store' });
             if (!response.ok) {
                 throw new Error(`Falha ao carregar config.json: ${response.status}`);
             }
@@ -2148,7 +2148,8 @@
             // ==========================================================
             // VARIÁVEIS DE TELEMETRIA DA ZUQ (RASTREAMENTO EM TEMPO REAL)
             // ==========================================================
-            const ZUQ_TOKEN = 'QQ5R0DL2WW50NSXVCSHFDOZLTR66JHOWIF7O42X7GDBAQP7OHPY7BW6PM610IZMP25MPON632MVOA5W051XR8P3YQN2C16KN2O4164UMUHBL62UB5DX2N5UVH2E6VVLL';
+            // Token lido do config.json (campo "zuqToken"). Fallback para valor embutido caso o config não esteja disponível.
+            const ZUQ_TOKEN = appConfig.zuqToken || 'QQ5R0DL2WW50NSXVCSHFDOZLTR66JHOWIF7O42X7GDBAQP7OHPY7BW6PM610IZMP25MPON632MVOA5W051XR8P3YQN2C16KN2O4164UMUHBL62UB5DX2N5UVH2E6VVLL';
             // Edge Function do Supabase — mesmo projeto que você já usa
             // Depois de fazer o deploy da função, essa URL já funciona automaticamente
             const ZUQ_PROXY = 'https://regfencgflzcypgqpbjb.supabase.co/functions/v1/zuq-proxy';
@@ -3869,7 +3870,7 @@
 
             const fetchDriversFromZuq = async () => {
                 try {
-                    const url = `${ZUQ_PROXY}?path=/api/integration/drivers`;
+                    const url = `${ZUQ_PROXY}?path=/integration/drivers`;
                     const response = await fetch(url, {
                         headers: { 'x-zuq-token': ZUQ_TOKEN, 'X-Requested-With': 'XMLHttpRequest' }
                     });
@@ -3894,7 +3895,7 @@
 
             // Sincroniza localização, ignição, velocidade e odômetro em tempo real
             const fetchZuqTelemetry = async () => {
-                const ENDPOINTS = [ `${ZUQ_PROXY}?path=/api/integration/realtime&v2=true` ];
+                const ENDPOINTS = [ `${ZUQ_PROXY}?path=/integration/realtime&v2=true` ];
                 let lastError = '';
                 for (const url of ENDPOINTS) {
                     try {
