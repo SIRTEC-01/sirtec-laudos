@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -445,14 +444,9 @@
                                         <span class="text-2xl font-black text-blue-600 mt-1 block">{{ formatNumberWithDots(selectedVehicle.kmAtual) || 0 }} <span class="text-xs font-normal text-slate-400">km</span></span>
                                     </div>
                                     <div>
-                                        <span class="text-slate-400 block font-medium uppercase">
-                                            {{ getKmFaltante(selectedVehicle) <= 0 ? '⚠️ Passou' : 'Faltam' }}
-                                        </span>
-                                        <span class="text-2xl font-black mt-1 block"
-                                              :class="getKmFaltante(selectedVehicle) <= 0 ? 'text-red-600' : getKmFaltante(selectedVehicle) <= 1000 ? 'text-amber-500' : 'text-blue-600'">
-                                            {{ getKmFaltante(selectedVehicle) <= 0 ? formatNumberWithDots(Math.abs(getKmFaltante(selectedVehicle))) + ' km' : getKmFaltanteLabel(selectedVehicle) }}
-                                        </span>
-                                        <span v-if="getKmFaltante(selectedVehicle) <= 0" class="text-[10px] text-red-500 font-semibold block mt-0.5">Preventiva em atraso — parar veículo</span>
+                                        <span class="text-slate-400 block font-medium uppercase">{{ getKmFaltante(selectedVehicle) <= 0 ? "Passou" : "Faltam" }}</span>
+                                        <span class="text-2xl font-black mt-1 block" :class="getKmFaltante(selectedVehicle) <= 0 ? 'text-red-600' : 'text-blue-600'">{{ getKmFaltante(selectedVehicle) <= 0 ? formatNumberWithDots(Math.abs(getKmFaltante(selectedVehicle))) + ' km' : getKmFaltanteLabel(selectedVehicle) }}</span>
+                                        <span v-if="getKmFaltante(selectedVehicle) <= 0" class="text-[10px] text-red-500 font-semibold block mt-0.5">Preventiva em atraso</span>
                                     </div>
                                 </div>
 
@@ -1011,7 +1005,7 @@
                                             <td class="px-5 py-4 text-center">
                                                 <div class="flex flex-col items-center gap-1">
                                                     <span :class="['font-black', getKmRestanteColor(v)]">
-                                                        {{ getKmFaltante(v) <= 0 ? '⚠️ Passou ' + formatNumberWithDots(Math.abs(getKmFaltante(v))) + ' km' : getKmFaltanteLabel(v) }}
+                                                        {{ getKmFaltante(v) <= 0 ? 'Passou ' + formatNumberWithDots(Math.abs(getKmFaltante(v))) + ' km' : getKmFaltanteLabel(v) }}
                                                     </span>
                                                     <!-- Barra de Progresso de manutenção -->
                                                     <div v-if="v.ultimaPreventivaKm" class="w-24 bg-slate-100 rounded-full h-1.5 overflow-hidden">
@@ -1500,86 +1494,72 @@
                             </div>
                         </div>
                     </div>
-                    <!-- TAB: GESTÃO -->
+                    <!-- TAB: GESTAO -->
                     <div v-if="currentTab === 'gestao'" class="space-y-6">
                         <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                             <div>
-                                <h1 class="text-2xl font-bold text-slate-900">📊 Gestão de Operações</h1>
-                                <p class="text-sm text-slate-500">Disponibilidade · Perda de produção · Motoristas · Alertas proativos</p>
+                                <h1 class="text-2xl font-bold text-slate-900">Gestao de Operacoes</h1>
+                                <p class="text-sm text-slate-500">Disponibilidade · Perda · Motoristas · Alertas</p>
                             </div>
                             <div class="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 w-full xl:w-auto">
-                                <label class="text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">Operação:</label>
-                                <select v-model="gestaoOperacaoSelecionada" class="flex-1 text-xs border border-slate-300 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                                    <option value="">Todas as Operações</option>
-                                    <option v-for="op in gestaoTodasOperacoes" :key="op" :value="op">{{ op }}</option>
+                                <label class="text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">Operacao:</label>
+                                <select v-model="gOpSel" class="flex-1 text-xs border border-slate-300 rounded-lg px-3 py-2 bg-white text-slate-700">
+                                    <option value="">Todas</option>
+                                    <option v-for="op in gOps" :key="op" :value="op">{{ op }}</option>
                                 </select>
                             </div>
                         </div>
                         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                             <div class="bg-white p-4 rounded-xl border-l-4 border-emerald-500 shadow-sm">
-                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Disponibilidade (mês)</div>
-                                <div :class="['text-2xl font-black mt-1', gestaoDispMes >= gestaoMeta ? 'text-emerald-600' : 'text-red-600']">{{ gestaoDispMes }}%</div>
-                                <div class="text-[10px] font-semibold mt-1" :class="gestaoDispDelta >= 0 ? 'text-emerald-600' : 'text-red-500'">
-                                    {{ gestaoDispDelta >= 0 ? '▲' : '▼' }} {{ Math.abs(gestaoDispDelta) }}% vs mês anterior
-                                </div>
-                                <div class="text-[10px] text-slate-400 mt-0.5">Meta: {{ gestaoMeta }}%</div>
+                                <div class="text-[10px] font-bold text-slate-400 uppercase">Disponibilidade</div>
+                                <div :class="['text-2xl font-black mt-1', gDisp >= 75 ? 'text-emerald-600' : 'text-red-600']">{{ gDisp }}%</div>
+                                <div class="text-[10px] mt-1 text-slate-400">Meta: 75%</div>
                             </div>
                             <div class="bg-white p-4 rounded-xl border-l-4 border-red-500 shadow-sm">
-                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Perda de produção (mês)</div>
-                                <div class="text-2xl font-black text-red-600 mt-1">{{ formatNumberWithDots(gestaoPerdaMes) }} km</div>
-                                <div class="text-[10px] font-semibold mt-1" :class="gestaoPerdaDelta <= 0 ? 'text-emerald-600' : 'text-red-500'">
-                                    {{ gestaoPerdaDelta <= 0 ? '▼' : '▲' }} {{ formatNumberWithDots(Math.abs(gestaoPerdaDelta)) }} km vs mês anterior
-                                </div>
-                                <div class="text-[10px] text-slate-400 mt-0.5">Km não rodados por paralisação</div>
+                                <div class="text-[10px] font-bold text-slate-400 uppercase">Perda estimada</div>
+                                <div class="text-2xl font-black text-red-600 mt-1">{{ formatNumberWithDots(gPerda) }} km</div>
+                                <div class="text-[10px] mt-1 text-slate-400">km nao rodados</div>
                             </div>
                             <div class="bg-white p-4 rounded-xl border-l-4 border-blue-500 shadow-sm">
-                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Veículos ativos</div>
-                                <div class="text-2xl font-black text-blue-600 mt-1">{{ gestaoVeiculosAtivosCount }} <span class="text-xs font-normal text-slate-400">/ {{ gestaoVeiculosFiltrados.length }}</span></div>
-                                <div class="text-[10px] text-slate-400 mt-1">{{ gestaoVeiculosFiltrados.length > 0 ? Math.round((gestaoVeiculosAtivosCount / gestaoVeiculosFiltrados.length) * 100) : 0 }}% da operação rodando</div>
+                                <div class="text-[10px] font-bold text-slate-400 uppercase">Veiculos ativos</div>
+                                <div class="text-2xl font-black text-blue-600 mt-1">{{ gAtivos }} <span class="text-xs font-normal text-slate-400">/ {{ gFrota.length }}</span></div>
                             </div>
                             <div class="bg-white p-4 rounded-xl border-l-4 border-purple-500 shadow-sm">
-                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Motoristas sem infração</div>
-                                <div class="text-2xl font-black text-purple-600 mt-1">{{ gestaoMotoristasLimpons }} <span class="text-xs font-normal text-slate-400">/ {{ gestaoMotoristasAtivos.length }}</span></div>
-                                <div class="text-[10px] text-blue-500 mt-1 cursor-pointer hover:underline" @click="showMotoristasModal = true">Ver todos os motoristas →</div>
+                                <div class="text-[10px] font-bold text-slate-400 uppercase">Sem infracao</div>
+                                <div class="text-2xl font-black text-purple-600 mt-1">{{ gMotLim }} <span class="text-xs font-normal text-slate-400">/ {{ gMots.length }}</span></div>
+                                <div class="text-[10px] mt-1 text-blue-500 cursor-pointer hover:underline" @click="gShowMot = true">Ver todos</div>
                             </div>
                         </div>
                         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                             <div class="lg:col-span-8 bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
                                 <div class="flex justify-between items-center mb-4">
-                                    <div>
-                                        <div class="text-xs font-bold text-slate-600 uppercase tracking-wider">📈 Disponibilidade — últimos 6 meses</div>
-                                        <div class="text-[11px] text-slate-400 mt-0.5">Verde = meta atingida · Vermelho = abaixo da meta</div>
-                                    </div>
-                                    <select v-model="gestaoChartTipo" class="text-[11px] border border-slate-200 rounded px-2 py-1 bg-white text-slate-600">
+                                    <div class="text-xs font-bold text-slate-600 uppercase">Disponibilidade - ultimos 6 meses</div>
+                                    <select v-model="gChartT" class="text-xs border border-slate-200 rounded px-2 py-1 bg-white text-slate-600">
                                         <option value="disp">Disponibilidade (%)</option>
-                                        <option value="perda">Perda de produção (km)</option>
+                                        <option value="perda">Perda (km)</option>
                                     </select>
                                 </div>
-                                <div style="height:200px; display:flex; align-items:flex-end; gap:8px; padding-bottom:32px; position:relative;">
-                                    <div v-for="(mes, idx) in gestaoHistorico" :key="idx" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%;">
-                                        <div style="flex:1; display:flex; flex-direction:column; justify-content:flex-end; width:100%;">
-                                            <div :title="gestaoChartTipo === 'disp' ? mes.disp + '%' : formatNumberWithDots(mes.perda) + ' km'"
-                                                 :style="{height: gestaoChartTipo === 'disp' ? Math.max(4,(mes.disp/100)*160)+'px' : Math.max(4,(mes.perda/(gestaoMaxPerda||1))*160)+'px', background: gestaoChartTipo==='disp'?(mes.disp>=gestaoMeta?'#10b981':'#ef4444'):'#ef4444', borderRadius:'4px 4px 0 0', width:'100%'}">
-                                            </div>
+                                <div style="height:200px;display:flex;align-items:flex-end;gap:8px;padding-bottom:32px;position:relative;">
+                                    <div v-for="(m,i) in gHist" :key="i" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;">
+                                        <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;width:100%;">
+                                            <div :style="{height:gChartT==='disp'?Math.max(4,(m.d/100)*160)+'px':Math.max(4,(m.p/(gMaxP||1))*160)+'px',background:gChartT==='disp'?(m.d>=75?'#10b981':'#ef4444'):'#ef4444',borderRadius:'4px 4px 0 0',width:'100%'}"></div>
                                         </div>
-                                        <div style="font-size:10px; font-weight:600; color:#64748b; text-align:center;">{{ mes.label }}</div>
-                                        <div style="font-size:9px; font-weight:800; text-align:center;" :style="{color: gestaoChartTipo==='disp'?(mes.disp>=gestaoMeta?'#059669':'#dc2626'):'#dc2626'}">
-                                            {{ gestaoChartTipo === 'disp' ? mes.disp + '%' : formatNumberWithDots(mes.perda) }}
-                                        </div>
+                                        <div style="font-size:10px;font-weight:600;color:#64748b;">{{ m.l }}</div>
+                                        <div style="font-size:9px;font-weight:800;" :style="{color:gChartT==='disp'?(m.d>=75?'#059669':'#dc2626'):'#dc2626'}">{{ gChartT==='disp'?m.d+'%':formatNumberWithDots(m.p) }}</div>
                                     </div>
-                                    <div v-if="gestaoChartTipo === 'disp'" :style="{position:'absolute',left:0,right:0,bottom:Math.max(4,(gestaoMeta/100)*160)+36+'px',borderTop:'1.5px dashed #f59e0b',pointerEvents:'none'}">
-                                        <span style="position:absolute;right:4px;top:-13px;font-size:9px;font-weight:700;color:#b45309;">Meta {{ gestaoMeta }}%</span>
+                                    <div v-if="gChartT==='disp'" style="position:absolute;left:0;right:0;bottom:156px;border-top:1.5px dashed #f59e0b;pointer-events:none;">
+                                        <span style="position:absolute;right:4px;top:-13px;font-size:9px;font-weight:700;color:#b45309;">Meta 75%</span>
                                     </div>
                                 </div>
                             </div>
                             <div class="lg:col-span-4 bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
-                                <div class="text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">🔔 Alertas proativos</div>
+                                <div class="text-xs font-bold text-slate-600 uppercase mb-3">Alertas proativos</div>
                                 <div class="space-y-2 max-h-64 overflow-y-auto">
-                                    <div v-if="gestaoAlertas.length === 0" class="text-[11px] text-slate-400 italic">Nenhum alerta no momento.</div>
-                                    <div v-for="alerta in gestaoAlertas" :key="alerta.msg" class="flex items-start gap-2 p-2 rounded-lg text-[11px]"
-                                         :class="{'bg-red-50 border border-red-100':alerta.nivel==='r','bg-amber-50 border border-amber-100':alerta.nivel==='a','bg-emerald-50 border border-emerald-100':alerta.nivel==='g'}">
-                                        <span class="mt-0.5 flex-shrink-0 h-2 w-2 rounded-full" :class="{'bg-red-500':alerta.nivel==='r','bg-amber-500':alerta.nivel==='a','bg-emerald-500':alerta.nivel==='g'}"></span>
-                                        <span :class="{'text-red-700':alerta.nivel==='r','text-amber-700':alerta.nivel==='a','text-emerald-700':alerta.nivel==='g'}">{{ alerta.msg }}</span>
+                                    <div v-if="gAl.length === 0" class="text-xs text-slate-400">Nenhum alerta.</div>
+                                    <div v-for="a in gAl" :key="a.msg" class="flex items-start gap-2 p-2 rounded-lg text-xs"
+                                         :class="{'bg-red-50 border border-red-100':a.n==='r','bg-amber-50 border border-amber-100':a.n==='a','bg-emerald-50 border border-emerald-100':a.n==='g'}">
+                                        <span class="mt-0.5 flex-shrink-0 h-2 w-2 rounded-full" :class="{'bg-red-500':a.n==='r','bg-amber-500':a.n==='a','bg-emerald-500':a.n==='g'}"></span>
+                                        <span :class="{'text-red-700':a.n==='r','text-amber-700':a.n==='a','text-emerald-700':a.n==='g'}">{{ a.msg }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -1587,66 +1567,49 @@
                         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                             <div class="lg:col-span-5 bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
                                 <div class="flex justify-between items-center mb-3">
-                                    <div class="text-xs font-bold text-slate-600 uppercase tracking-wider">🏆 Ranking de motoristas</div>
-                                    <button @click="showMotoristasModal = true" class="text-[11px] text-blue-600 font-semibold hover:underline">Ver todos →</button>
+                                    <div class="text-xs font-bold text-slate-600 uppercase">Ranking de motoristas</div>
+                                    <button @click="gShowMot = true" class="text-xs text-blue-600 font-semibold hover:underline">Ver todos</button>
                                 </div>
-                                <div v-if="gestaoMotoristasAtivos.length === 0" class="text-[11px] text-slate-400 italic py-4 text-center">Nenhum motorista identificado via ZUQ nesta operação.</div>
+                                <div v-if="gMots.length === 0" class="text-xs text-slate-400 italic py-4 text-center">Nenhum motorista identificado.</div>
                                 <div class="space-y-3">
-                                    <div v-for="(m, idx) in gestaoMotoristasAtivos.slice(0,5)" :key="m.cardId"
-                                         class="flex items-center gap-3 cursor-pointer hover:bg-slate-50 rounded-lg p-2 transition-colors"
-                                         @click="gestaoMotoristaDetalhe = m; showMotoristasModal = true">
-                                        <div class="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0"
-                                             :class="idx===0?'bg-amber-100 text-amber-800':idx===1?'bg-slate-200 text-slate-700':'bg-slate-100 text-slate-500'">{{ idx+1 }}</div>
+                                    <div v-for="(m,i) in gMots.slice(0,5)" :key="m.id" class="flex items-center gap-3 cursor-pointer hover:bg-slate-50 rounded-lg p-2" @click="gMotDet=m;gShowMot=true">
+                                        <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0" :class="i===0?'bg-amber-100 text-amber-800':i===1?'bg-slate-200 text-slate-700':'bg-slate-100 text-slate-500'">{{ i+1 }}</div>
                                         <div class="flex-1 min-w-0">
-                                            <div class="flex justify-between items-center mb-0.5">
-                                                <div class="min-w-0">
-                                                    <span class="text-xs font-bold text-slate-900 truncate block">{{ m.placa }}</span>
-                                                    <span class="text-[10px] text-slate-500 truncate block">{{ getDriverNameByCardId(m.cardId) !== 'Não identificado' && getDriverNameByCardId(m.cardId) !== ('Crachá #' + m.cardId) ? getDriverNameByCardId(m.cardId) : (m.nome !== 'Veículo ' + m.placa ? m.nome : '—') }}</span>
-                                                </div>
-                                                <div class="flex gap-1.5 items-center flex-shrink-0 ml-2">
-                                                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                                                          :class="m.infracoes===0?'bg-emerald-100 text-emerald-700':m.infracoes<=2?'bg-amber-100 text-amber-700':'bg-red-100 text-red-700'">{{ m.infracoes }} infrç.</span>
-                                                    <span class="text-[10px] text-slate-500">{{ formatNumberWithDots(m.km) }} km</span>
+                                            <div class="flex justify-between items-center mb-1">
+                                                <div><span class="text-xs font-bold text-slate-900 block">{{ m.placa }}</span><span class="text-xs text-slate-500 block">{{ m.nome || '-' }}</span></div>
+                                                <div class="flex gap-1.5 items-center ml-2">
+                                                    <span class="text-xs font-bold px-1.5 py-0.5 rounded-full" :class="m.inf===0?'bg-emerald-100 text-emerald-700':m.inf<=2?'bg-amber-100 text-amber-700':'bg-red-100 text-red-700'">{{ m.inf }} infr.</span>
+                                                    <span class="text-xs text-slate-500">{{ formatNumberWithDots(m.km) }} km</span>
                                                 </div>
                                             </div>
-                                            <div class="flex items-center gap-2 mt-1">
-                                                <div class="flex-1 bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                                                    <div class="h-full rounded-full" :style="{width:m.disp+'%',background:m.disp>=80?'#10b981':m.disp>=60?'#f59e0b':'#ef4444'}"></div>
-                                                </div>
-                                                <span class="text-[10px] font-bold text-slate-600 min-w-[28px]">{{ m.disp }}%</span>
+                                            <div class="flex items-center gap-2">
+                                                <div class="flex-1 bg-slate-100 rounded-full h-1.5 overflow-hidden"><div class="h-full rounded-full" :style="{width:m.disp+'%',background:m.disp>=80?'#10b981':m.disp>=60?'#f59e0b':'#ef4444'}"></div></div>
+                                                <span class="text-xs font-bold text-slate-600 min-w-[28px]">{{ m.disp }}%</span>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <div class="lg:col-span-7 bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
-                                <div class="text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">📉 Veículos com perda de produção este mês</div>
-                                <div v-if="gestaoVeiculosComPerda.length === 0" class="text-[11px] text-slate-400 italic py-4 text-center">Nenhum veículo com perda significativa.</div>
+                                <div class="text-xs font-bold text-slate-600 uppercase mb-3">Veiculos com perda de producao</div>
+                                <div v-if="gPerdasV.length === 0" class="text-xs text-slate-400 italic py-4 text-center">Nenhum veiculo com perda.</div>
                                 <div class="overflow-x-auto" v-else>
                                     <table class="min-w-full text-xs">
-                                        <thead>
-                                            <tr class="border-b border-slate-100">
-                                                <th class="text-left py-2 pr-3 text-[10px] font-bold text-slate-500 uppercase">Placa</th>
-                                                <th class="text-left py-2 pr-3 text-[10px] font-bold text-slate-500 uppercase">Modelo</th>
-                                                <th class="text-left py-2 pr-3 text-[10px] font-bold text-slate-500 uppercase">Operação / Base</th>
-                                                <th class="text-center py-2 pr-3 text-[10px] font-bold text-slate-500 uppercase">Dias ativos</th>
-                                                <th class="text-center py-2 pr-3 text-[10px] font-bold text-slate-500 uppercase">Disponib.</th>
-                                                <th class="text-right py-2 text-[10px] font-bold text-slate-500 uppercase">Perda estimada</th>
-                                            </tr>
-                                        </thead>
+                                        <thead><tr class="border-b border-slate-100">
+                                            <th class="text-left py-2 pr-3 text-xs font-bold text-slate-500 uppercase">Placa</th>
+                                            <th class="text-left py-2 pr-3 text-xs font-bold text-slate-500 uppercase">Modelo</th>
+                                            <th class="text-left py-2 pr-3 text-xs font-bold text-slate-500 uppercase">Operacao</th>
+                                            <th class="text-center py-2 pr-3 text-xs font-bold text-slate-500 uppercase">Dias</th>
+                                            <th class="text-center py-2 pr-3 text-xs font-bold text-slate-500 uppercase">Disp.</th>
+                                            <th class="text-right py-2 text-xs font-bold text-slate-500 uppercase">Perda</th>
+                                        </tr></thead>
                                         <tbody class="divide-y divide-slate-50">
-                                            <tr v-for="v in gestaoVeiculosComPerda" :key="v.placa" class="hover:bg-slate-50 cursor-pointer" @click="selectVehicleByPlate(v.placa)">
+                                            <tr v-for="v in gPerdasV" :key="v.placa" class="hover:bg-slate-50 cursor-pointer" @click="selectVehicleByPlate(v.placa)">
                                                 <td class="py-2 pr-3 font-bold text-slate-900">{{ v.placa }}</td>
                                                 <td class="py-2 pr-3 text-slate-500">{{ v.modelo }}</td>
-                                                <td class="py-2 pr-3 text-[10px] font-semibold uppercase">
-                                                    <span class="text-slate-700 block">{{ v.contrato || '—' }}</span>
-                                                    <span class="text-slate-400 block font-normal" v-if="v.base">{{ v.base }}</span>
-                                                </td>
-                                                <td class="py-2 pr-3 text-center text-slate-600">{{ v.diasAtivos }}/{{ diasCorridos }}</td>
-                                                <td class="py-2 pr-3 text-center">
-                                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-black"
-                                                          :class="v.pct < 40 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'">{{ v.pct }}%</span>
-                                                </td>
+                                                <td class="py-2 pr-3 text-xs font-semibold uppercase"><span class="text-slate-700 block">{{ v.contrato }}</span><span class="text-slate-400 block font-normal">{{ v.base }}</span></td>
+                                                <td class="py-2 pr-3 text-center text-slate-600">{{ v.dias }}/{{ diasCorridos }}</td>
+                                                <td class="py-2 pr-3 text-center"><span class="px-2 py-0.5 rounded-full text-xs font-black" :class="v.pct<40?'bg-red-100 text-red-700':'bg-amber-100 text-amber-700'">{{ v.pct }}%</span></td>
                                                 <td class="py-2 text-right font-bold text-red-600">{{ formatNumberWithDots(v.perdaKm) }} km</td>
                                             </tr>
                                         </tbody>
@@ -1655,68 +1618,38 @@
                             </div>
                         </div>
                     </div>
-                    <!-- MODAL MOTORISTAS -->
-                    <div v-if="showMotoristasModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4" @click.self="showMotoristasModal = false; gestaoMotoristaDetalhe = null">
+                    <!-- MODAL MOTORISTAS GESTAO -->
+                    <div v-if="gShowMot" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4" @click.self="gShowMot=false;gMotDet=null">
                         <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden max-h-[85vh] flex flex-col">
                             <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-                                <div>
-                                    <div class="font-bold text-slate-900">Motoristas da Operação</div>
-                                    <div class="text-xs text-slate-400 mt-0.5">{{ gestaoOperacaoSelecionada || 'Todas as operações' }} · {{ gestaoMotoristasAtivos.length }} identificados</div>
-                                </div>
-                                <button @click="showMotoristasModal = false; gestaoMotoristaDetalhe = null" class="text-slate-400 text-2xl font-light">&times;</button>
+                                <div><div class="font-bold text-slate-900">Motoristas</div><div class="text-xs text-slate-400">{{ gMots.length }} identificados</div></div>
+                                <button @click="gShowMot=false;gMotDet=null" class="text-slate-400 text-2xl font-light">&times;</button>
                             </div>
-                            <div v-if="gestaoMotoristaDetalhe" class="px-6 py-4 bg-blue-50 border-b border-blue-100">
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <div class="font-bold text-slate-900 text-sm">{{ gestaoMotoristaDetalhe.nome }}</div>
-                                        <div class="text-[11px] text-slate-500 mt-0.5">Crachá #{{ gestaoMotoristaDetalhe.cardId }} · Veículo: {{ gestaoMotoristaDetalhe.placa }}</div>
-                                    </div>
-                                    <button @click="gestaoMotoristaDetalhe = null" class="text-xs text-slate-500 hover:text-slate-700">✕ fechar</button>
-                                </div>
+                            <div v-if="gMotDet" class="px-6 py-4 bg-blue-50 border-b border-blue-100">
+                                <div class="flex justify-between"><div><div class="font-bold text-slate-900">{{ gMotDet.placa }}</div><div class="text-xs text-slate-500">{{ gMotDet.nome || '-' }}</div></div><button @click="gMotDet=null" class="text-xs text-slate-500">fechar</button></div>
                                 <div class="grid grid-cols-3 gap-3 mt-3">
-                                    <div class="bg-white rounded-lg p-3 text-center border border-blue-100">
-                                        <div class="text-[10px] uppercase text-slate-500">Km rodados</div>
-                                        <div class="font-black text-slate-900 text-lg">{{ formatNumberWithDots(gestaoMotoristaDetalhe.km) }}</div>
-                                    </div>
-                                    <div class="bg-white rounded-lg p-3 text-center border border-blue-100">
-                                        <div class="text-[10px] uppercase text-slate-500">Disponibilidade</div>
-                                        <div class="font-black text-lg" :class="gestaoMotoristaDetalhe.disp>=80?'text-emerald-600':gestaoMotoristaDetalhe.disp>=60?'text-amber-600':'text-red-600'">{{ gestaoMotoristaDetalhe.disp }}%</div>
-                                    </div>
-                                    <div class="bg-white rounded-lg p-3 text-center border border-blue-100">
-                                        <div class="text-[10px] uppercase text-slate-500">Infrações</div>
-                                        <div class="font-black text-lg" :class="gestaoMotoristaDetalhe.infracoes===0?'text-emerald-600':gestaoMotoristaDetalhe.infracoes<=2?'text-amber-600':'text-red-600'">{{ gestaoMotoristaDetalhe.infracoes }}</div>
-                                    </div>
+                                    <div class="bg-white rounded-lg p-3 text-center border border-blue-100"><div class="text-xs uppercase text-slate-500">Km</div><div class="font-black text-lg text-slate-900">{{ formatNumberWithDots(gMotDet.km) }}</div></div>
+                                    <div class="bg-white rounded-lg p-3 text-center border border-blue-100"><div class="text-xs uppercase text-slate-500">Disponib.</div><div class="font-black text-lg" :class="gMotDet.disp>=80?'text-emerald-600':gMotDet.disp>=60?'text-amber-600':'text-red-600'">{{ gMotDet.disp }}%</div></div>
+                                    <div class="bg-white rounded-lg p-3 text-center border border-blue-100"><div class="text-xs uppercase text-slate-500">Infracoes</div><div class="font-black text-lg" :class="gMotDet.inf===0?'text-emerald-600':gMotDet.inf<=2?'text-amber-600':'text-red-600'">{{ gMotDet.inf }}</div></div>
                                 </div>
                             </div>
                             <div class="overflow-y-auto flex-1 divide-y divide-slate-50">
-                                <div v-if="gestaoMotoristasAtivos.length === 0" class="px-6 py-8 text-center text-sm text-slate-400 italic">Nenhum motorista identificado via ZUQ nesta operação.</div>
-                                <div v-for="(m, idx) in gestaoMotoristasAtivos" :key="m.cardId"
-                                     class="px-6 py-3 flex items-center gap-3 hover:bg-slate-50 cursor-pointer transition-colors"
-                                     :class="{'bg-blue-50': gestaoMotoristaDetalhe && gestaoMotoristaDetalhe.cardId === m.cardId}"
-                                     @click="gestaoMotoristaDetalhe = m">
-                                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-black flex-shrink-0"
-                                         :class="idx===0?'bg-amber-100 text-amber-800':idx===1?'bg-slate-200 text-slate-600':'bg-slate-100 text-slate-500'">{{ idx+1 }}</div>
+                                <div v-if="gMots.length===0" class="px-6 py-8 text-center text-sm text-slate-400">Nenhum motorista identificado.</div>
+                                <div v-for="(m,i) in gMots" :key="m.id" class="px-6 py-3 flex items-center gap-3 hover:bg-slate-50 cursor-pointer" :class="{'bg-blue-50':gMotDet&&gMotDet.id===m.id}" @click="gMotDet=m">
+                                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0" :class="i===0?'bg-amber-100 text-amber-800':i===1?'bg-slate-200 text-slate-600':'bg-slate-100 text-slate-500'">{{ i+1 }}</div>
                                     <div class="flex-1 min-w-0">
-                                        <div class="flex justify-between items-center">
-                                            <div>
-                                                <span class="text-sm font-bold text-slate-900 block">{{ m.placa }}</span>
-                                                <span class="text-[11px] text-slate-500">{{ getDriverNameByCardId(m.cardId) !== 'Não identificado' && getDriverNameByCardId(m.cardId) !== ('Crachá #' + m.cardId) ? getDriverNameByCardId(m.cardId) : (m.nome !== 'Veículo ' + m.placa ? m.nome : '—') }}</span>
-                                            </div>
+                                        <div><span class="text-sm font-bold text-slate-900 block">{{ m.placa }}</span><span class="text-xs text-slate-500">{{ m.nome || '-' }}</span></div>
                                         <div class="flex items-center gap-2 mt-1">
-                                            <div class="flex-1 bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                                                <div class="h-full rounded-full" :style="{width:m.disp+'%',background:m.disp>=80?'#10b981':m.disp>=60?'#f59e0b':'#ef4444'}"></div>
-                                            </div>
-                                            <span class="text-[10px] text-slate-500 min-w-[28px]">{{ m.disp }}%</span>
-                                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                                                  :class="m.infracoes===0?'bg-emerald-100 text-emerald-700':m.infracoes<=2?'bg-amber-100 text-amber-700':'bg-red-100 text-red-700'">{{ m.infracoes }} infrç.</span>
-                                            <span class="text-[10px] text-slate-400">{{ formatNumberWithDots(m.km) }} km</span>
+                                            <div class="flex-1 bg-slate-100 rounded-full h-1.5 overflow-hidden"><div class="h-full rounded-full" :style="{width:m.disp+'%',background:m.disp>=80?'#10b981':m.disp>=60?'#f59e0b':'#ef4444'}"></div></div>
+                                            <span class="text-xs text-slate-500 min-w-[28px]">{{ m.disp }}%</span>
+                                            <span class="text-xs font-bold px-1.5 py-0.5 rounded-full" :class="m.inf===0?'bg-emerald-100 text-emerald-700':m.inf<=2?'bg-amber-100 text-amber-700':'bg-red-100 text-red-700'">{{ m.inf }} infr.</span>
+                                            <span class="text-xs text-slate-400">{{ formatNumberWithDots(m.km) }} km</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
                     <!-- TAB: USUÁRIOS -->
                     <div v-if="currentTab === 'usuarios' && currentUser && currentUser.role === 'admin_geral'" class="space-y-6">
                         <div class="flex justify-between items-center">
@@ -4538,208 +4471,146 @@
                 };
             });
 
+            
+            // GESTAO DE OPERACOES
+            const gOpSel = Vue.ref('');
+            const gChartT = Vue.ref('disp');
+            const gShowMot = Vue.ref(false);
+            const gMotDet = Vue.ref(null);
 
-            // ── GESTÃO DE OPERAÇÕES ──────────────────────────────────
-            const gestaoOperacaoSelecionada = Vue.ref('');
-            const gestaoChartTipo = Vue.ref('disp');
-            const showMotoristasModal = Vue.ref(false);
-            const gestaoMotoristaDetalhe = Vue.ref(null);
-            const gestaoMeta = Vue.computed(() => 75);
-
-            // Lista automática de operações + bases — cresce conforme novos veículos são cadastrados
-            // Filtro: usa apenas o campo "contrato" (operação) — cresce automático com novos cadastros
-            const gestaoTodasOperacoes = Vue.computed(() => {
-                const set = new Set();
-                veiculos.value.forEach(v => {
-                    if (v.contrato && v.contrato.trim()) set.add(v.contrato.trim().toUpperCase());
+            const gOps = Vue.computed(function() {
+                var s = new Set();
+                veiculos.value.forEach(function(v) {
+                    if (v.contrato && v.contrato.trim()) s.add(v.contrato.trim().toUpperCase());
                 });
-                return Array.from(set).sort();
+                return Array.from(s).sort();
             });
 
-            const gestaoVeiculosFiltrados = Vue.computed(() => {
-                if (!gestaoOperacaoSelecionada.value) return veiculos.value;
-                const sel = gestaoOperacaoSelecionada.value.trim().toUpperCase();
-                return veiculos.value.filter(v => {
-                    const c = (v.contrato || '').trim().toUpperCase();
-                    const b = (v.base || '').trim().toUpperCase();
-                    const o = (v.operacao || '').trim().toUpperCase();
-                    return c === sel || b === sel || o === sel;
+            const gFrota = Vue.computed(function() {
+                if (!gOpSel.value) return veiculos.value;
+                var sel = gOpSel.value.toUpperCase();
+                return veiculos.value.filter(function(v) {
+                    return (v.contrato || '').toUpperCase() === sel || (v.base || '').toUpperCase() === sel;
                 });
             });
 
-            const gestaoVeiculosAtivosCount = Vue.computed(() =>
-                gestaoVeiculosFiltrados.value.filter(v => isVehicleActive(v)).length
-            );
+            const gAtivos = Vue.computed(function() {
+                return gFrota.value.filter(function(v) { return isVehicleActive(v); }).length;
+            });
 
-            const gestaoDispMes = Vue.computed(() => {
-                const total = gestaoVeiculosFiltrados.value.length;
-                if (total === 0) return 0;
-                const ativos = gestaoVeiculosFiltrados.value.filter(v => getDiasAtivosNoMes(v) > 0).length;
+            const gDisp = Vue.computed(function() {
+                var total = gFrota.value.length;
+                if (!total) return 0;
+                var ativos = gFrota.value.filter(function(v) { return getDiasAtivosNoMes(v) > 0; }).length;
                 return Math.round((ativos / total) * 100);
             });
 
-            const gestaoDispMesAnterior = Vue.computed(() => {
-                const base = gestaoDispMes.value;
-                const seed = gestaoVeiculosFiltrados.value.length % 7;
-                return Math.max(0, Math.min(100, base - 3 + seed));
+            const gPerda = Vue.computed(function() {
+                return gFrota.value.reduce(function(sum, v) {
+                    var inat = Math.max(0, diasCorridos.value - getDiasAtivosNoMes(v));
+                    var kd = v.kmAtual > 0 ? Math.min(300, Math.round(v.kmAtual / 365)) : 80;
+                    return sum + inat * kd;
+                }, 0);
             });
 
-            const gestaoDispDelta = Vue.computed(() => gestaoDispMes.value - gestaoDispMesAnterior.value);
-
-            const gestaoPerdaMes = Vue.computed(() =>
-                gestaoVeiculosFiltrados.value.reduce((sum, v) => {
-                    const diasInativos = Math.max(0, diasCorridos.value - getDiasAtivosNoMes(v));
-                    const kmDia = v.kmAtual > 0 ? Math.min(300, Math.round(v.kmAtual / 365)) : 80;
-                    return sum + diasInativos * kmDia;
-                }, 0)
-            );
-
-            const gestaoPerdaMesAnterior = Vue.computed(() => Math.round(gestaoPerdaMes.value * 1.12));
-            const gestaoPerdaDelta = Vue.computed(() => gestaoPerdaMes.value - gestaoPerdaMesAnterior.value);
-
-            const gestaoHistorico = Vue.computed(() => {
-                const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-                const hoje = new Date();
-                const base = gestaoDispMes.value;
-                const basePerda = gestaoPerdaMes.value;
-                return Array.from({length:6}, (_, i) => {
-                    const d = new Date(hoje.getFullYear(), hoje.getMonth() - (5 - i), 1);
-                    const vv = (((i * 7 + gestaoVeiculosFiltrados.value.length) % 13) - 6);
+            const gHist = Vue.computed(function() {
+                var meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+                var hoje = new Date();
+                var base = gDisp.value;
+                var bp = gPerda.value;
+                var n = gFrota.value.length;
+                return Array.from({length:6}, function(_, i) {
+                    var d = new Date(hoje.getFullYear(), hoje.getMonth() - (5 - i), 1);
+                    var vv = (((i * 7 + n) % 13) - 6);
                     return {
-                        label: meses[d.getMonth()],
-                        disp: Math.round(Math.max(10, Math.min(100, base + vv - (5 - i) * 1.5))),
-                        perda: Math.max(0, Math.round(basePerda * (1 + (5 - i) * 0.08) + vv * 50))
+                        l: meses[d.getMonth()],
+                        d: Math.round(Math.max(10, Math.min(100, base + vv - (5 - i) * 1.5))),
+                        p: Math.max(0, Math.round(bp * (1 + (5 - i) * 0.08) + vv * 50))
                     };
                 });
             });
 
-            const gestaoMaxPerda = Vue.computed(() => Math.max(1, ...gestaoHistorico.value.map(m => m.perda)));
-
-            const gestaoMotoristasAtivos = Vue.computed(() => {
-                const vistos = new Set();
-                const resultado = [];
-
-                // FONTE 1: veículos com cardId (crachá ZUQ)
-                gestaoVeiculosFiltrados.value
-                    .filter(v => v.cardId && String(v.cardId) !== '0' && String(v.cardId) !== '')
-                    .forEach(v => {
-                        const cardId = String(v.cardId);
-                        if (vistos.has(cardId)) return;
-                        vistos.add(cardId);
-                        // Tenta nome em: motoristasZuq → driverHistory → fallback
-                        const mZuq = motoristasZuq.value.find(m => String(m.driverKeyId) === cardId || String(m.registration) === cardId);
-                        const mHist = driverHistory.value && driverHistory.value[cardId];
-                        const nome = (mZuq && mZuq.name) || (mHist && mHist.name) || ('Crachá #' + cardId);
-                        const infracoes = (v.path || []).filter(p => p.speed > 100).length;
-                        const diasAt = getDiasAtivosNoMes(v);
-                        const disp = diasCorridos.value > 0 ? Math.round((diasAt / diasCorridos.value) * 100) : 0;
-                        const km = Math.round((v.kmAtual || 0) * 0.08);
-                        resultado.push({ cardId, nome, placa: v.placa, infracoes, disp, km });
-                    });
-
-                // FONTE 2: veículos sem cardId mas com path ZUQ (telemetria ativa)
-                // Usa a placa como identificador e o nome do campo driver se disponível
-                gestaoVeiculosFiltrados.value
-                    .filter(v => (!v.cardId || String(v.cardId) === '0' || String(v.cardId) === '') && v.path && v.path.length > 0)
-                    .forEach(v => {
-                        const chave = 'placa_' + v.placa;
-                        if (vistos.has(chave)) return;
-                        vistos.add(chave);
-                        const infracoes = v.path.filter(p => p.speed > 100).length;
-                        const diasAt = getDiasAtivosNoMes(v);
-                        const disp = diasCorridos.value > 0 ? Math.round((diasAt / diasCorridos.value) * 100) : 0;
-                        const km = Math.round((v.kmAtual || 0) * 0.08);
-                        const nome = v.motoristaNome || v.driver || ('Veículo ' + v.placa);
-                        resultado.push({ cardId: chave, nome, placa: v.placa, infracoes, disp, km });
-                    });
-
-                return resultado.sort((a, b) => b.disp - a.disp);
+            const gMaxP = Vue.computed(function() {
+                var vals = gHist.value.map(function(m) { return m.p; });
+                return Math.max.apply(null, [1].concat(vals));
             });
 
-            const gestaoMotoristasLimpons = Vue.computed(() => gestaoMotoristasAtivos.value.filter(m => m.infracoes === 0).length);
+            const gMots = Vue.computed(function() {
+                var vis = new Set();
+                var res = [];
+                gFrota.value.forEach(function(v) {
+                    if (!v.cardId || String(v.cardId) === '0') return;
+                    var cid = String(v.cardId);
+                    if (vis.has(cid)) return;
+                    vis.add(cid);
+                    var mz = motoristasZuq.value.find(function(m) { return String(m.driverKeyId) === cid || String(m.registration) === cid; });
+                    var mh = driverHistory.value && driverHistory.value[cid];
+                    var nome = (mz && mz.name) || (mh && mh.name) || '';
+                    var inf = (v.path || []).filter(function(p) { return p.speed > 100; }).length;
+                    var da = getDiasAtivosNoMes(v);
+                    var disp = diasCorridos.value > 0 ? Math.round((da / diasCorridos.value) * 100) : 0;
+                    res.push({ id: cid, nome: nome, placa: v.placa, inf: inf, disp: disp, km: Math.round((v.kmAtual || 0) * 0.08) });
+                });
+                gFrota.value.forEach(function(v) {
+                    if (v.cardId && String(v.cardId) !== '0') return;
+                    if (!v.path || v.path.length === 0) return;
+                    var chave = 'p_' + v.placa;
+                    if (vis.has(chave)) return;
+                    vis.add(chave);
+                    var inf = v.path.filter(function(p) { return p.speed > 100; }).length;
+                    var da = getDiasAtivosNoMes(v);
+                    var disp = diasCorridos.value > 0 ? Math.round((da / diasCorridos.value) * 100) : 0;
+                    res.push({ id: chave, nome: '', placa: v.placa, inf: inf, disp: disp, km: Math.round((v.kmAtual || 0) * 0.08) });
+                });
+                return res.sort(function(a, b) { return b.disp - a.disp; });
+            });
 
-            const gestaoVeiculosComPerda = Vue.computed(() =>
-                gestaoVeiculosFiltrados.value
-                    .map(v => {
-                        const diasAt = getDiasAtivosNoMes(v);
-                        const pct = diasCorridos.value > 0 ? Math.round((diasAt / diasCorridos.value) * 100) : 0;
-                        const kmDia = v.kmAtual > 0 ? Math.min(300, Math.round(v.kmAtual / 365)) : 80;
-                        return { placa: v.placa, modelo: v.modelo || '-', contrato: v.contrato || '', operacao: v.base || v.operacao || '', diasAtivos: diasAt, pct, perdaKm: Math.max(0, (diasCorridos.value - diasAt) * kmDia) };
-                    })
-                    .filter(v => v.pct < 80)
-                    .sort((a, b) => a.pct - b.pct)
-                    .slice(0, 10)
-            );
+            const gMotLim = Vue.computed(function() {
+                return gMots.value.filter(function(m) { return m.inf === 0; }).length;
+            });
 
-            const gestaoAlertas = Vue.computed(() => {
-                const al = [];
-                const agora = Date.now();
-                const MS_DIA = 1000 * 60 * 60 * 24;
+            const gPerdasV = Vue.computed(function() {
+                return gFrota.value.map(function(v) {
+                    var da = getDiasAtivosNoMes(v);
+                    var pct = diasCorridos.value > 0 ? Math.round((da / diasCorridos.value) * 100) : 0;
+                    var kd = v.kmAtual > 0 ? Math.min(300, Math.round(v.kmAtual / 365)) : 80;
+                    return { placa: v.placa, modelo: v.modelo || '-', contrato: v.contrato || '-', base: v.base || '', dias: da, pct: pct, perdaKm: Math.max(0, (diasCorridos.value - da) * kd) };
+                }).filter(function(v) { return v.pct < 80; }).sort(function(a, b) { return a.pct - b.pct; }).slice(0, 10);
+            });
 
-                gestaoVeiculosFiltrados.value.forEach(v => {
-                    // Pega a data mais recente entre: último sinal GPS e último ponto de rota
-                    let ultimaAtividade = null;
-
+            const gAl = Vue.computed(function() {
+                var al = [];
+                var agora = Date.now();
+                var MSD = 86400000;
+                gFrota.value.forEach(function(v) {
+                    var ult = null;
                     if (v.ultimaAtualizacaoRastreador) {
-                        const t = new Date(v.ultimaAtualizacaoRastreador).getTime();
-                        if (!isNaN(t)) ultimaAtividade = t;
+                        var t = new Date(v.ultimaAtualizacaoRastreador).getTime();
+                        if (!isNaN(t)) ult = t;
                     }
-
                     if (v.path && v.path.length > 0) {
-                        const ultimoPonto = v.path[v.path.length - 1];
-                        if (ultimoPonto && ultimoPonto.time) {
-                            const t = new Date(ultimoPonto.time).getTime();
-                            if (!isNaN(t) && (!ultimaAtividade || t > ultimaAtividade)) ultimaAtividade = t;
-                        }
+                        var lp = v.path[v.path.length - 1];
+                        if (lp && lp.time) { var t2 = new Date(lp.time).getTime(); if (!isNaN(t2) && (!ult || t2 > ult)) ult = t2; }
                     }
-
-                    if (ultimaAtividade) {
-                        const diasParado = Math.floor((agora - ultimaAtividade) / MS_DIA);
-                        // Só alerta se parado há mais de 5 dias E não teve rota no mês
-                        const diasAtivos = getDiasAtivosNoMes(v);
-                        if (diasParado > 5 && diasAtivos === 0) {
-                            al.push({ nivel: 'r', msg: v.placa + ' — sem rota registrada há ' + diasParado + ' dias' });
-                        } else if (diasParado > 5 && diasAtivos > 0) {
-                            // Tem rota no mês mas sinal antigo — apenas aviso amarelo
-                            al.push({ nivel: 'a', msg: v.placa + ' — último sinal há ' + diasParado + ' dias (verificar rastreador)' });
-                        }
-                    }
-
-                    // Sem sinal recente (mais de 2h sem ping GPS)
-                    if (v.ultimaAtualizacaoRastreador) {
-                        const diffMin = Math.round((agora - new Date(v.ultimaAtualizacaoRastreador).getTime()) / 60000);
-                        if (diffMin > 120 && diffMin < 60 * 24 * 2) {
-                            al.push({ nivel: 'a', msg: v.placa + ' — sem sinal GPS há ' + (diffMin >= 60 ? Math.round(diffMin/60) + 'h' : diffMin + ' min') });
-                        }
+                    if (ult) {
+                        var dp = Math.floor((agora - ult) / MSD);
+                        var da = getDiasAtivosNoMes(v);
+                        if (dp > 5 && da === 0) al.push({ n: 'r', msg: v.placa + ' - sem rota ha ' + dp + ' dias' });
+                        else if (dp > 5) al.push({ n: 'a', msg: v.placa + ' - sinal antigo ha ' + dp + ' dias' });
                     }
                 });
-
-                // Operação abaixo da meta
-                if (gestaoDispMes.value < gestaoMeta.value)
-                    al.push({ nivel: 'r', msg: 'Operação com ' + gestaoDispMes.value + '% de disponibilidade — abaixo da meta de ' + gestaoMeta.value + '%' });
-
-                // Motoristas com infrações
-                gestaoMotoristasAtivos.value.forEach(m => {
-                    if (m.infracoes >= 5) al.push({ nivel: 'r', msg: m.placa + ' — ' + m.infracoes + ' infrações de velocidade no mês' });
-                    else if (m.infracoes >= 3) al.push({ nivel: 'a', msg: m.placa + ' — ' + m.infracoes + ' infrações de velocidade no mês' });
+                if (gDisp.value < 75) al.push({ n: 'r', msg: 'Operacao com ' + gDisp.value + '% - abaixo da meta de 75%' });
+                gMots.value.forEach(function(m) {
+                    if (m.inf >= 5) al.push({ n: 'r', msg: m.placa + ' - ' + m.inf + ' infracoes no mes' });
+                    else if (m.inf >= 3) al.push({ n: 'a', msg: m.placa + ' - ' + m.inf + ' infracoes no mes' });
                 });
-
-                // Positivos
-                const top = gestaoVeiculosFiltrados.value
-                    .filter(v => getDiasAtivosNoMes(v) === diasCorridos.value)
-                    .slice(0, 1)[0];
-                if (top) al.push({ nivel: 'g', msg: top.placa + ' — 100% de disponibilidade no mês, sem nenhum dia parado' });
-                if (gestaoDispDelta.value > 0) al.push({ nivel: 'g', msg: 'Disponibilidade subiu ' + gestaoDispDelta.value + '% em relação ao mês anterior' });
-
-                // Remove duplicatas e limita
-                const vistos = new Set();
-                return al.filter(a => {
-                    if (vistos.has(a.msg)) return false;
-                    vistos.add(a.msg);
-                    return true;
-                }).slice(0, 10);
+                var topV = null;
+                gFrota.value.forEach(function(v) { if (getDiasAtivosNoMes(v) === diasCorridos.value) { if (!topV) topV = v; } });
+                if (topV) al.push({ n: 'g', msg: topV.placa + ' - 100% disponibilidade no mes' });
+                var vis = new Set();
+                return al.filter(function(a) { if (vis.has(a.msg)) return false; vis.add(a.msg); return true; }).slice(0, 10);
             });
-            // ── FIM GESTÃO ───────────────────────────────────────────
+            // FIM GESTAO
 
             return {
                 logged, currentUser, loginForm, loginError, handleLogin, logout, handleLogoError, logoExists, canEdit, dbConfigured, showPassword,
@@ -4770,10 +4641,8 @@
                 disponibilidadeMensal, disponibilidadePorVeiculo, diasCorridos,
                 disponibilidadeFiltroData, disponibilidadeOperacaoQuery, disponibilidadeFiltroDataLabel,
                 filteredDisponibilidadePorVeiculo, melhorMotoristaData,
-                gestaoOperacaoSelecionada, gestaoChartTipo, showMotoristasModal, gestaoMotoristaDetalhe,
-                gestaoMeta, gestaoVeiculosFiltrados, gestaoVeiculosAtivosCount, gestaoDispMes,
-                gestaoDispDelta, gestaoPerdaMes, gestaoPerdaDelta, gestaoHistorico, gestaoMaxPerda,
-                gestaoMotoristasAtivos, gestaoMotoristasLimpons, gestaoVeiculosComPerda, gestaoAlertas, gestaoTodasOperacoes
+                gOpSel, gChartT, gShowMot, gMotDet, gOps, gFrota, gAtivos, gDisp, gPerda,
+                gHist, gMaxP, gMots, gMotLim, gPerdasV, gAl
             };
         }
     }).mount('#app');
