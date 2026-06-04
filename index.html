@@ -890,6 +890,45 @@
                             </div>
                         </div>
 
+
+                        <!-- BARRA DE STATUS RAPIDO -->
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-emerald-100 transition-colors" @click="setPreventiveCardFilter('em-dia')">
+                                <div class="w-3 h-3 rounded-full bg-emerald-500 flex-shrink-0"></div>
+                                <div class="min-w-0">
+                                    <div class="text-xs font-bold text-emerald-800 uppercase tracking-wide">Em dia</div>
+                                    <div class="text-2xl font-black text-emerald-700 leading-tight">{{ countPreventive.emDia }}</div>
+                                    <div class="text-[10px] text-emerald-600 font-semibold">{{ totalPreventiveCount > 0 ? Math.round((countPreventive.emDia / totalPreventiveCount) * 100) : 0 }}% da frota</div>
+                                </div>
+                                <div class="ml-auto flex-shrink-0">
+                                    <svg class="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </div>
+                            </div>
+                            <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-amber-100 transition-colors" @click="setPreventiveCardFilter('atencao')">
+                                <div class="w-3 h-3 rounded-full bg-amber-500 flex-shrink-0"></div>
+                                <div class="min-w-0">
+                                    <div class="text-xs font-bold text-amber-800 uppercase tracking-wide">Em alerta</div>
+                                    <div class="text-2xl font-black text-amber-700 leading-tight">{{ countPreventive.atencao }}</div>
+                                    <div class="text-[10px] text-amber-600 font-semibold">Menos de 1.000 km</div>
+                                </div>
+                                <div class="ml-auto flex-shrink-0">
+                                    <svg class="w-6 h-6 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                </div>
+                            </div>
+                            <div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-red-100 transition-colors" @click="setPreventiveCardFilter('vencido')">
+                                <div class="w-3 h-3 rounded-full bg-red-500 flex-shrink-0 animate-pulse"></div>
+                                <div class="min-w-0">
+                                    <div class="text-xs font-bold text-red-800 uppercase tracking-wide">Vencidas</div>
+                                    <div class="text-2xl font-black text-red-700 leading-tight">{{ countPreventive.atrasados }}</div>
+                                    <div class="text-[10px] text-red-600 font-semibold">Parar para revisao</div>
+                                </div>
+                                <div class="ml-auto flex-shrink-0">
+                                    <svg class="w-6 h-6 text-red-400 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- FIM BARRA DE STATUS -->
+
                         <!-- SEÇÃO DE GRÁFICOS CORPORATIVOS INTEGRADOS -->
                         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                             <!-- Gráfico 1 -->
@@ -1494,6 +1533,42 @@
                             </div>
                         </div>
                     </div>
+                        <!-- LISTA DE MOTORISTAS CADASTRADOS -->
+                        <div class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden mt-2">
+                            <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
+                                <div>
+                                    <div class="font-bold text-slate-900 text-sm">Motoristas cadastrados</div>
+                                    <div class="text-xs text-slate-400 mt-0.5">Vinculados pelo numero do cracha ZUQ</div>
+                                </div>
+                                <span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full font-semibold">{{ motoristasLocal.length }}</span>
+                            </div>
+                            <div v-if="motoristasLocal.length === 0" class="px-5 py-8 text-center text-sm text-slate-400">
+                                Nenhum motorista cadastrado. Clique em "+ Motorista" para adicionar.
+                            </div>
+                            <table v-else class="min-w-full text-sm divide-y divide-slate-50">
+                                <thead class="bg-slate-50">
+                                    <tr>
+                                        <th class="text-left px-5 py-3 text-xs font-bold text-slate-500 uppercase">Nome</th>
+                                        <th class="text-left px-5 py-3 text-xs font-bold text-slate-500 uppercase">Cracha ZUQ</th>
+                                        <th class="text-left px-5 py-3 text-xs font-bold text-slate-500 uppercase">Veiculo</th>
+                                        <th class="text-left px-5 py-3 text-xs font-bold text-slate-500 uppercase">Observacao</th>
+                                        <th class="px-5 py-3"></th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-50">
+                                    <tr v-for="m in motoristasLocal" :key="m.id" class="hover:bg-slate-50">
+                                        <td class="px-5 py-3 font-semibold text-slate-900">{{ m.nome }}</td>
+                                        <td class="px-5 py-3 font-mono text-slate-600 text-xs">#{{ m.cracha }}</td>
+                                        <td class="px-5 py-3 text-slate-500 font-semibold">{{ m.placa || '-' }}</td>
+                                        <td class="px-5 py-3 text-slate-400 text-xs">{{ m.obs || '-' }}</td>
+                                        <td class="px-5 py-3 text-right">
+                                            <button v-if="canEdit" @click="deleteMotorista(m)" class="text-xs text-red-500 hover:text-red-700 font-semibold">Remover</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
                     <!-- TAB: GESTAO -->
                     <div v-if="currentTab === 'gestao'" class="space-y-6">
                         <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
@@ -1657,7 +1732,10 @@
                                 <h1 class="text-2xl font-bold text-slate-900">Usuários</h1>
                                 <p class="text-sm text-slate-500">Controle de acessos ao aplicativo</p>
                             </div>
-                            <button @click="showAddUserModal = true" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded">+ Cadastrar Novo</button>
+                            <div class="flex gap-2">
+                                <button @click="showAddDriverModal = true" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded">+ Motorista</button>
+                                <button @click="showAddUserModal = true" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded">+ Usuário</button>
+                            </div>
                         </div>
 
                         <div class="bg-white rounded-lg shadow border border-slate-200 max-w-2xl">
@@ -1718,6 +1796,39 @@
         </button>
     </div>
 
+
+    <!-- MODAL: CADASTRAR MOTORISTA -->
+    <div v-if="showAddDriverModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <div class="font-bold text-slate-900">Cadastrar Motorista</div>
+                <button @click="showAddDriverModal = false" class="text-slate-400 text-2xl font-light">&times;</button>
+            </div>
+            <div class="px-6 py-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nome completo *</label>
+                    <input v-model="newDriver.nome" type="text" placeholder="Ex: Joao Silva" class="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Numero do cracha ZUQ *</label>
+                    <input v-model="newDriver.cracha" type="text" placeholder="Ex: 4022178" class="w-full px-3 py-2 border border-slate-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <p class="text-[10px] text-slate-400 mt-1">Numero que aparece como "Cracha #..." no status instantaneo</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Placa do veiculo (opcional)</label>
+                    <input v-model="newDriver.placa" type="text" placeholder="Ex: IZR3H60" class="w-full px-3 py-2 border border-slate-300 rounded text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Observacao (opcional)</label>
+                    <input v-model="newDriver.obs" type="text" placeholder="Ex: Motorista titular rota Barreiras" class="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-2">
+                <button @click="showAddDriverModal = false" class="px-4 py-2 text-sm border border-slate-300 rounded text-slate-600 hover:bg-slate-50">Cancelar</button>
+                <button @click="saveMotorista()" class="px-4 py-2 text-sm bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded">Salvar Motorista</button>
+            </div>
+        </div>
+    </div>
     <!-- MODAL: CADASTRAR NOVO USUÁRIO -->
     <div v-if="showAddUserModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
         <div class="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden">
@@ -2652,6 +2763,7 @@
 
                         // Sincronização automatizada da ZUQ ao carregar o sistema
                         await fetchDriversFromZuq();
+                    await loadMotoristasLocal();
                         await fetchZuqTelemetry();
 
                         // Atualiza a telemetria em segundo plano a cada 2 minutos
@@ -4153,9 +4265,12 @@
 
             // Retorna o nome do motorista pelo ID do crachá
             const getDriverNameByCardId = (cardId) => {
-                if (!cardId || cardId === 0 || cardId === '0') return 'Não identificado';
-                const found = motoristasZuq.value.find(m => String(m.driverKeyId) === String(cardId) || String(m.registration) === String(cardId));
-                return found ? found.name : `Crachá #${cardId}`;
+                if (!cardId || cardId === 0 || cardId === '0') return 'Nao identificado';
+                const cid = String(cardId);
+                const local = motoristasLocal.value.find(function(m){ return String(m.cracha) === cid; });
+                if (local) return local.nome;
+                const zuq = motoristasZuq.value.find(function(m){ return String(m.driverKeyId) === cid || String(m.registration) === cid; });
+                return zuq ? zuq.name : ('Cracha #' + cid);
             };
 
             // Botão "Consultar Rota no Mapa": seleciona o veículo pela placa digitada e re-renderiza o mapa com o filtro de data/hora aplicado
@@ -4472,6 +4587,50 @@
             });
 
             
+
+            // MOTORISTAS LOCAL
+            const showAddDriverModal = Vue.ref(false);
+            const newDriver = Vue.ref({ nome: '', cracha: '', placa: '', obs: '' });
+            const motoristasLocal = Vue.ref([]);
+
+            const loadMotoristasLocal = async () => {
+                try {
+                    if (!supabaseClient) return;
+                    const { data } = await supabaseClient.from('motoristas').select('*').order('nome');
+                    if (data) motoristasLocal.value = data;
+                } catch(e) {
+                    console.warn('Tabela motoristas nao existe ainda:', e.message);
+                }
+            };
+
+            const saveMotorista = async () => {
+                var nome = (newDriver.value.nome || '').trim();
+                var cracha = (newDriver.value.cracha || '').trim();
+                if (!nome || !cracha) { alert('Nome e numero do cracha sao obrigatorios.'); return; }
+                try {
+                    var payload = { nome: nome, cracha: cracha, placa: (newDriver.value.placa || '').trim().toUpperCase(), obs: (newDriver.value.obs || '').trim() };
+                    var result = await supabaseClient.from('motoristas').insert([payload]).select();
+                    if (result.error) throw result.error;
+                    motoristasLocal.value.push(result.data[0]);
+                    motoristasLocal.value.sort(function(a,b){ return a.nome.localeCompare(b.nome); });
+                    newDriver.value = { nome: '', cracha: '', placa: '', obs: '' };
+                    showAddDriverModal.value = false;
+                } catch(e) {
+                    alert('Erro ao salvar: ' + e.message + '. Crie a tabela "motoristas" no Supabase primeiro.');
+                }
+            };
+
+            const deleteMotorista = async (m) => {
+                if (!confirm('Remover ' + m.nome + '?')) return;
+                try {
+                    await supabaseClient.from('motoristas').delete().eq('id', m.id);
+                    motoristasLocal.value = motoristasLocal.value.filter(function(x){ return x.id !== m.id; });
+                } catch(e) {
+                    alert('Erro ao remover: ' + e.message);
+                }
+            };
+            // FIM MOTORISTAS LOCAL
+
             // GESTAO DE OPERACOES
             const gOpSel = Vue.ref('');
             const gChartT = Vue.ref('disp');
@@ -4637,7 +4796,7 @@
                 latestZuqUpdate, getLatestZuqUpdateLabel,
                 zuqStatus, zuqStatusLevel, zuqLastAttempt, zuqLastError, getZuqStatusClass,
                 getVehicleOperation, countTelemetryOnlineVehicles,
-                getDriverNameByCardId,
+                getDriverNameByCardId, showAddDriverModal, newDriver, motoristasLocal, saveMotorista, deleteMotorista,
                 disponibilidadeMensal, disponibilidadePorVeiculo, diasCorridos,
                 disponibilidadeFiltroData, disponibilidadeOperacaoQuery, disponibilidadeFiltroDataLabel,
                 filteredDisponibilidadePorVeiculo, melhorMotoristaData,
