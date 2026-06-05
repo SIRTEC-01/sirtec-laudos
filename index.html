@@ -121,6 +121,9 @@
                 <button @click="navegarParaAba('abastecimento')" :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', currentTab === 'abastecimento' && !selectedVehicle ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50']">
                     Abastecimentos
                 </button>
+                <button @click="navegarParaAba('gestao')" :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', currentTab === 'gestao' && !selectedVehicle ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50']">
+                    Gestão
+                </button>
                 <button @click="logout" class="ml-auto md:ml-4 px-3 py-2 text-sm font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-md flex items-center gap-1 transition-colors">
                     Sair
                 </button>
@@ -667,187 +670,143 @@
                         <template v-if="abastecimentos.length > 0">
 
                             <!-- PAINEL PLACA SELECIONADA -->
-                            <div v-if="abastFiltroPlaca" class="bg-gradient-to-r from-blue-700 to-indigo-700 rounded-2xl p-5 text-white shadow-lg">
+                            <div v-if="abastFiltroPlaca" class="bg-slate-900 rounded-2xl p-5 text-white shadow-lg">
                                 <div class="flex flex-col md:flex-row justify-between gap-4 items-start">
                                     <div>
-                                        <p class="text-xs font-bold uppercase opacity-70 mb-1">Veículo Selecionado</p>
-                                        <p class="text-4xl font-black tracking-widest">{{ abastFiltroPlaca }}</p>
-                                        <p class="text-sm opacity-70 mt-1">{{ abastFiltrados.length }} abastecimentos · {{ abastFiltroMes ? abastMeses.find(m=>m.val===abastFiltroMes)?.label : "Todos os meses" }}</p>
+                                        <p class="text-[10px] font-bold uppercase text-slate-400 mb-1 tracking-widest">Veículo selecionado</p>
+                                        <p class="text-3xl font-black tracking-widest text-white">{{ abastFiltroPlaca }}</p>
+                                        <p class="text-xs text-slate-400 mt-1">{{ abastFiltrados.length }} abastecimentos · {{ abastFiltroMes ? abastMeses.find(m=>m.val===abastFiltroMes)?.label : "Todos os meses" }}</p>
                                     </div>
-                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                        <div class="bg-white/20 rounded-xl p-3 text-center">
-                                            <p class="text-[10px] font-bold uppercase opacity-70">Total Gasto</p>
-                                            <p class="text-lg font-black">R$ {{ (abastTotalValor).toLocaleString('pt-BR',{minimumFractionDigits:0}) }}</p>
+                                    <div class="grid grid-cols-2 md:grid-cols-5 gap-2 w-full md:w-auto">
+                                        <div class="bg-white/10 rounded-xl p-3 text-center">
+                                            <p class="text-[9px] font-bold uppercase text-slate-400 mb-1">Total gasto</p>
+                                            <p class="text-base font-black">R$ {{ Math.round(abastTotalValor).toLocaleString('pt-BR') }}</p>
                                         </div>
-                                        <div class="bg-white/20 rounded-xl p-3 text-center">
-                                            <p class="text-[10px] font-bold uppercase opacity-70">Litros</p>
-                                            <p class="text-lg font-black">{{ abastTotalLitros.toLocaleString('pt-BR',{minimumFractionDigits:0}) }}L</p>
+                                        <div class="bg-white/10 rounded-xl p-3 text-center">
+                                            <p class="text-[9px] font-bold uppercase text-slate-400 mb-1">Litros</p>
+                                            <p class="text-base font-black">{{ Math.round(abastTotalLitros).toLocaleString('pt-BR') }}L</p>
                                         </div>
-                                        <div class="bg-white/20 rounded-xl p-3 text-center">
-                                            <p class="text-[10px] font-bold uppercase opacity-70">Média KM/L</p>
-                                            <p class="text-lg font-black">{{ abastKmLMedioNum > 0 ? abastKmLMedioNum.toFixed(1) : "—" }}</p>
+                                        <div class="bg-white/10 rounded-xl p-3 text-center">
+                                            <p class="text-[9px] font-bold uppercase text-slate-400 mb-1">KM/L médio</p>
+                                            <p class="text-base font-black">{{ abastKmLMedioNum > 0 ? abastKmLMedioNum.toFixed(1) : "—" }}</p>
                                         </div>
-                                        <div class="bg-white/20 rounded-xl p-3 text-center">
-                                            <p class="text-[10px] font-bold uppercase opacity-70">R$/Litro</p>
-                                            <p class="text-lg font-black">R$ {{ abastPrecoMedio }}</p>
+                                        <div class="bg-white/10 rounded-xl p-3 text-center">
+                                            <p class="text-[9px] font-bold uppercase text-slate-400 mb-1">R$/Litro</p>
+                                            <p class="text-base font-black">R$ {{ abastPrecoMedio }}</p>
+                                        </div>
+                                        <div class="bg-amber-500/20 border border-amber-500/40 rounded-xl p-3 text-center">
+                                            <p class="text-[9px] font-bold uppercase text-amber-300 mb-1">R$/km</p>
+                                            <p class="text-base font-black text-amber-300">{{ abastRkmTop10Caros.find(v=>v.placa===abastFiltroPlaca) ? 'R$ '+(abastRkmTop10Caros.find(v=>v.placa===abastFiltroPlaca)||abastRkmTop10Efic.find(v=>v.placa===abastFiltroPlaca)||{rkm:0}).rkm.toFixed(2) : (abastRkmPorVeiculo.find(v=>v.placa===abastFiltroPlaca) ? 'R$ '+abastRkmPorVeiculo.find(v=>v.placa===abastFiltroPlaca).rkm.toFixed(2) : '—') }}</p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- KPIs LINHA 1 -->
-                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                                <div class="bg-white rounded-2xl p-4 border-l-4 border-blue-500 shadow-sm">
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Total Registros</p>
+                            <!-- KPIs EXECUTIVOS — LINHA PRINCIPAL -->
+                            <div class="grid grid-cols-2 lg:grid-cols-6 gap-3">
+                                <div class="bg-white rounded-2xl p-4 border-t-4 border-blue-500 shadow-sm">
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Abastecimentos</p>
                                     <p class="text-2xl font-black text-blue-600 mt-1">{{ abastFiltrados.length.toLocaleString('pt-BR') }}</p>
-                                    <p class="text-xs text-slate-400 mt-1">abastecimentos</p>
+                                    <p class="text-xs text-slate-400 mt-1">registros</p>
                                 </div>
-                                <div class="bg-white rounded-2xl p-4 border-l-4 border-emerald-500 shadow-sm">
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Total Litros</p>
-                                    <p class="text-2xl font-black text-emerald-600 mt-1">{{ abastTotalLitros.toLocaleString('pt-BR',{minimumFractionDigits:0}) }}</p>
+                                <div class="bg-white rounded-2xl p-4 border-t-4 border-emerald-500 shadow-sm">
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Total litros</p>
+                                    <p class="text-2xl font-black text-emerald-600 mt-1">{{ Math.round(abastTotalLitros).toLocaleString('pt-BR') }}</p>
                                     <p class="text-xs text-slate-400 mt-1">litros abastecidos</p>
                                 </div>
-                                <div class="bg-white rounded-2xl p-4 border-l-4 border-amber-500 shadow-sm">
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Total Gasto</p>
-                                    <p class="text-2xl font-black text-amber-600 mt-1">R$ {{ abastTotalValor.toLocaleString('pt-BR',{minimumFractionDigits:0}) }}</p>
-                                    <p class="text-xs text-slate-400 mt-1">valor total</p>
+                                <div class="lg:col-span-2 bg-white rounded-2xl p-4 border-t-4 border-amber-500 shadow-sm">
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Total gasto no período</p>
+                                    <p class="text-2xl font-black text-amber-600 mt-1">R$ {{ Math.round(abastTotalValor).toLocaleString('pt-BR') }}</p>
+                                    <p class="text-xs text-slate-400 mt-1">R$ {{ abastPrecoMedio }}/L · {{ abastOperacoesAtivas }} operações</p>
                                 </div>
-                                <div class="bg-white rounded-2xl p-4 border-l-4 border-purple-500 shadow-sm">
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Preço Médio/Litro</p>
-                                    <p class="text-2xl font-black text-purple-600 mt-1">R$ {{ abastPrecoMedio }}</p>
-                                    <p class="text-xs text-slate-400 mt-1">média do período</p>
-                                </div>
-                            </div>
-
-                            <!-- KPIs LINHA 2 -->
-                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                                <div class="bg-white rounded-2xl p-4 border-l-4 border-cyan-500 shadow-sm">
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Média KM/L Frota</p>
+                                <div class="bg-white rounded-2xl p-4 border-t-4 border-cyan-500 shadow-sm">
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Média KM/L</p>
                                     <p class="text-2xl font-black text-cyan-600 mt-1">{{ abastKmLMedioNum > 0 ? abastKmLMedioNum.toFixed(1) : "—" }}</p>
-                                    <p class="text-xs text-slate-400 mt-1">km por litro</p>
+                                    <p class="text-xs text-slate-400 mt-1">km por litro frota</p>
                                 </div>
-                                <div class="bg-white rounded-2xl p-4 border-l-4 border-rose-500 shadow-sm">
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Operações</p>
-                                    <p class="text-2xl font-black text-rose-600 mt-1">{{ abastOperacoesAtivas }}</p>
-                                    <p class="text-xs text-slate-400 mt-1">com registros filtrados</p>
-                                </div>
-                                <div class="bg-white rounded-2xl p-4 border-l-4 border-indigo-500 shadow-sm">
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Veículos</p>
-                                    <p class="text-2xl font-black text-indigo-600 mt-1">{{ abastPlacasFiltradas.length.toLocaleString('pt-BR') }}</p>
-                                    <p class="text-xs text-slate-400 mt-1">placas no filtro</p>
-                                </div>
-                                <div class="bg-white rounded-2xl p-4 border-l-4 border-orange-500 shadow-sm">
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Postos</p>
-                                    <p class="text-2xl font-black text-orange-600 mt-1">{{ abastTotalPostos }}</p>
-                                    <p class="text-xs text-slate-400 mt-1">estabelecimentos</p>
+                                <div class="bg-white rounded-2xl p-4 border-t-4 border-rose-500 shadow-sm" :class="abastRkmMedia>0?'':'opacity-50'">
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Média R$/km</p>
+                                    <p class="text-2xl font-black text-rose-600 mt-1">{{ abastRkmMedia>0 ? 'R$ '+abastRkmMedia.toFixed(2) : '—' }}</p>
+                                    <p class="text-xs text-slate-400 mt-1">{{ abastRkmPorVeiculo.length }} veíc. c/ hodômetro</p>
                                 </div>
                             </div>
 
-                            <!-- GASTO MENSAL + POR OPERAÇÃO -->
+                            <!-- LINHA DE CONTEXTO RÁPIDO -->
+                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                <div class="bg-slate-50 rounded-xl p-3 flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0"><span class="text-indigo-600 font-black text-sm">🚛</span></div>
+                                    <div><p class="text-[10px] text-slate-400 font-semibold uppercase">Veículos</p><p class="text-lg font-black text-slate-800">{{ abastPlacasFiltradas.length.toLocaleString('pt-BR') }}</p></div>
+                                </div>
+                                <div class="bg-slate-50 rounded-xl p-3 flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0"><span class="text-orange-600 font-black text-sm">⛽</span></div>
+                                    <div><p class="text-[10px] text-slate-400 font-semibold uppercase">Postos</p><p class="text-lg font-black text-slate-800">{{ abastTotalPostos }}</p></div>
+                                </div>
+                                <div class="bg-slate-50 rounded-xl p-3 flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-lg bg-rose-100 flex items-center justify-center flex-shrink-0"><span class="text-rose-600 font-black text-sm">⚠️</span></div>
+                                    <div><p class="text-[10px] text-slate-400 font-semibold uppercase">Alertas ativos</p><p class="text-lg font-black text-slate-800">{{ abastAlertas.length + abastAlertasRkm.length }}</p></div>
+                                </div>
+                                <div class="bg-slate-50 rounded-xl p-3 flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0"><span class="text-purple-600 font-black text-sm">🗺️</span></div>
+                                    <div><p class="text-[10px] text-slate-400 font-semibold uppercase">Estados ativos</p><p class="text-lg font-black text-slate-800">{{ abastPorUF.length || '—' }}</p></div>
+                                </div>
+                            </div>
+
+                            <!-- SEÇÃO 1: EVOLUÇÃO MENSAL + OPERAÇÕES + ALERTAS -->
                             <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
                                 <!-- Gasto Mensal -->
-                                <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">📅 Gasto Mensal R$ — Evolução</h3>
-                                    <div class="space-y-2.5">
+                                <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">📅 Gasto mensal — Evolução R$</h3>
+                                        <div class="flex gap-3 text-[10px] text-slate-400">
+                                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>Pico</span>
+                                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>Mês atual</span>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-2">
                                         <div v-for="m in abastGastoMensal" :key="m.mes" class="flex items-center gap-3">
-                                            <span class="text-xs font-semibold text-slate-500 w-14 flex-shrink-0">{{ m.label }}</span>
-                                            <div class="flex-1 bg-slate-100 rounded-full h-7 overflow-hidden">
-                                                <div class="h-full rounded-full flex items-center px-3"
+                                            <span class="text-xs font-semibold text-slate-400 w-14 flex-shrink-0">{{ m.label }}</span>
+                                            <div class="flex-1 bg-slate-100 rounded h-8 overflow-hidden">
+                                                <div class="h-full rounded flex items-center px-3"
                                                     :class="m.isPico ? 'bg-rose-500' : m.isAtual ? 'bg-emerald-500' : 'bg-blue-500'"
                                                     :style="{width: Math.max(6, Math.round((m.valor/abastMaxMensal)*100))+'%'}">
                                                     <span class="text-white text-[10px] font-bold truncate">{{ m.valorFmt }}</span>
                                                 </div>
                                             </div>
-                                            <span class="text-[10px] text-slate-400 w-12 text-right">{{ m.abast }}</span>
+                                            <span class="text-[10px] text-slate-400 w-10 text-right flex-shrink-0">{{ m.abast }}</span>
                                         </div>
                                     </div>
-                                    <div class="flex gap-3 mt-3 text-[10px] text-slate-400">
-                                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>Pico</span>
-                                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>Mês atual</span>
-                                        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>Histórico</span>
-                                    </div>
-                                </div>
-                                <!-- Gasto por Operação -->
-                                <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">🏢 Gasto por Operação</h3>
-                                    <div class="space-y-2.5">
-                                        <div v-for="op in abastPorOperacao" :key="op.nome"
-                                            class="cursor-pointer rounded-lg p-2 transition-colors hover:bg-slate-50"
-                                            :class="abastFiltroOperacao===op.val ? 'ring-2 ring-blue-400 bg-blue-50' : ''"
-                                            @click="abastFiltroOperacao = abastFiltroOperacao===op.val ? '' : op.val; abastFiltroPlaca=''; abastPagina=0">
-                                            <div class="flex justify-between items-center mb-1">
-                                                <span class="text-xs font-bold truncate max-w-[55%]" :class="abastFiltroOperacao===op.val ? 'text-blue-700' : 'text-slate-800'">{{ op.label }}</span>
-                                                <span class="text-xs font-bold text-amber-700">{{ op.valorFmt }}</span>
-                                            </div>
-                                            <div class="w-full bg-slate-100 rounded-full h-2">
-                                                <div class="h-full rounded-full transition-all" :class="abastFiltroOperacao===op.val ? 'bg-blue-600' : op.cor" :style="{width: Math.max(4,Math.round((op.valor/abastMaxOp)*100))+'%'}"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <p class="text-[10px] text-slate-400 mt-2">Clique para filtrar por operação</p>
-                                </div>
-                            </div>
-
-                            <!-- TOP VEÍCULOS + COMBUSTÍVEIS + ALERTAS -->
-                            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                                <!-- Top 10 Veículos -->
-                                <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                                    <div class="flex items-center justify-between mb-4">
-                                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">🚛 Top 10 Veículos — Gasto</h3>
-                                        <span v-if="abastFiltroOperacao" class="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">{{ abastPorOperacao.find(o=>o.val===abastFiltroOperacao)?.label || abastFiltroOperacao }}</span>
-                                    </div>
-                                    <div class="space-y-2">
-                                        <div v-for="(v,i) in abastTopVeiculos" :key="v.placa"
-                                            class="cursor-pointer rounded-lg p-2 transition-colors hover:bg-slate-50"
-                                            :class="abastFiltroPlaca===v.placa ? 'ring-2 ring-blue-400 bg-blue-50' : ''"
-                                            @click="abastFiltroPlaca = abastFiltroPlaca===v.placa ? '' : v.placa; abastPagina=0">
-                                            <div class="flex items-center justify-between mb-1">
-                                                <div class="flex items-center gap-2">
-                                                    <span class="text-[10px] font-black w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
-                                                        :class="i===0?'bg-rose-100 text-rose-700':i<3?'bg-orange-100 text-orange-700':'bg-slate-100 text-slate-500'">{{ i+1 }}</span>
-                                                    <div>
-                                                        <span class="text-xs font-bold text-slate-900">{{ v.placa }}</span>
-                                                        <span v-if="v.familia" class="text-[9px] text-slate-400 ml-1">{{ v.familia }}</span>
-                                                    </div>
-                                                </div>
-                                                <div class="text-right">
-                                                    <span class="text-xs font-bold" :class="i===0?'text-rose-600':i<3?'text-orange-600':'text-slate-700'">R$ {{ v.valor.toLocaleString('pt-BR',{minimumFractionDigits:0}) }}</span>
-                                                    <div class="text-[9px] text-slate-400">{{ v.litros.toFixed(0) }}L · {{ v.kml > 0 ? v.kml.toFixed(1)+' km/L' : '—' }}</div>
-                                                </div>
-                                            </div>
-                                            <div class="w-full bg-slate-100 rounded-full h-1.5">
-                                                <div class="h-full rounded-full" :class="i===0?'bg-rose-500':i<3?'bg-orange-400':'bg-emerald-400'" :style="{width: Math.round((v.valor/abastTopVeiculos[0].valor)*100)+'%'}"></div>
-                                            </div>
-                                            <div v-if="v.motorista" class="text-[9px] text-slate-400 mt-0.5 truncate">👤 {{ v.motorista }}</div>
-                                        </div>
-                                        <div v-if="abastTopVeiculos.length===0" class="py-6 text-center text-xs text-slate-400">Sem dados</div>
-                                    </div>
-                                    <p class="text-[10px] text-slate-400 mt-2">Clique para filtrar por placa</p>
                                 </div>
 
-                                <!-- Combustíveis + Alertas -->
-                                <div class="lg:col-span-4 space-y-4">
-                                    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">🔥 Combustível — Litros e R$</h3>
-                                        <div class="space-y-3">
-                                            <div v-for="c in abastPorCombustivel" :key="c.nome">
-                                                <div class="flex justify-between items-start mb-1">
-                                                    <span class="text-xs font-semibold text-slate-800 truncate max-w-[55%]">{{ c.nome }}</span>
-                                                    <div class="text-right">
-                                                        <div class="text-xs font-bold text-emerald-700">{{ c.litros.toFixed(0) }} L</div>
-                                                        <div class="text-[10px] text-slate-400">R$ {{ c.valorFmt }} · {{ c.pct }}%</div>
-                                                    </div>
-                                                </div>
-                                                <div class="w-full bg-slate-100 rounded-full h-2">
-                                                    <div class="h-full rounded-full bg-amber-400" :style="{width: c.pct+'%'}"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!-- Alertas -->
-                                    <div v-if="abastAlertas.length > 0" class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">⚠️ Alertas</h3>
+                                <!-- Operações + Alertas -->
+                                <div class="lg:col-span-5 flex flex-col gap-4">
+                                    <!-- Por Operação -->
+                                    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex-1">
+                                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">🏢 Gasto por operação</h3>
                                         <div class="space-y-2">
+                                            <div v-for="op in abastPorOperacao" :key="op.nome"
+                                                class="cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-50"
+                                                :class="abastFiltroOperacao===op.val ? 'ring-2 ring-blue-400 bg-blue-50' : ''"
+                                                @click="abastFiltroOperacao = abastFiltroOperacao===op.val ? '' : op.val; abastFiltroPlaca=''; abastPagina=0">
+                                                <div class="flex justify-between items-center mb-1">
+                                                    <span class="text-xs font-bold truncate max-w-[55%]" :class="abastFiltroOperacao===op.val ? 'text-blue-700' : 'text-slate-800'">{{ op.label }}</span>
+                                                    <span class="text-xs font-bold text-amber-700 flex-shrink-0">{{ op.valorFmt }}</span>
+                                                </div>
+                                                <div class="w-full bg-slate-100 rounded-full h-1.5">
+                                                    <div class="h-full rounded-full transition-all" :class="abastFiltroOperacao===op.val ? 'bg-blue-600' : op.cor" :style="{width: Math.max(4,Math.round((op.valor/abastMaxOp)*100))+'%'}"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <p class="text-[10px] text-slate-400 mt-2">Clique para filtrar</p>
+                                    </div>
+                                    <!-- Alertas unificados -->
+                                    <div v-if="(abastAlertas.length + abastAlertasRkm.length) > 0" class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">⚠️ Alertas automáticos</h3>
+                                        <div class="space-y-1.5">
+                                            <div v-for="al in abastAlertasRkm" :key="al.msg"
+                                                class="flex items-start gap-2 text-xs p-2 rounded-lg bg-rose-50 text-rose-700">
+                                                <span class="flex-shrink-0 font-bold">R$/km</span>
+                                                <span>{{ al.msg }}</span>
+                                            </div>
                                             <div v-for="al in abastAlertas" :key="al.msg"
                                                 class="flex items-start gap-2 text-xs p-2 rounded-lg"
                                                 :class="al.tipo==='danger'?'bg-red-50 text-red-700':'bg-amber-50 text-amber-700'">
@@ -857,15 +816,155 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
 
-                                <!-- Top Postos -->
+                            <!-- SEÇÃO 2: R$/KM — PAINEL PRINCIPAL -->
+                            <div v-if="abastRkmPorVeiculo.length > 0" class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div>
+                                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">💸 Custo por km rodado — R$/km por veículo</h3>
+                                        <p class="text-[10px] text-slate-400 mt-0.5">Média da frota: <strong class="text-slate-700">R$ {{ abastRkmMedia.toFixed(2) }}/km</strong> · {{ abastRkmPorVeiculo.length }} veículos com hodômetro registrado · {{ abastVeiculosSemKm }} sem hodômetro</p>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                                    <!-- Top mais caros -->
+                                    <div>
+                                        <p class="text-[10px] font-bold text-rose-500 uppercase tracking-wide mb-2">🔴 Top 10 mais caros por km</p>
+                                        <div class="space-y-1.5">
+                                            <div v-for="(v,i) in abastRkmTop10Caros" :key="'c'+v.placa"
+                                                class="cursor-pointer rounded-lg px-3 py-2 transition-colors hover:bg-slate-50 border border-transparent"
+                                                :class="abastFiltroPlaca===v.placa ? 'border-blue-300 bg-blue-50' : ''"
+                                                @click="abastFiltroPlaca = abastFiltroPlaca===v.placa ? '' : v.placa; abastPagina=0">
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex items-center gap-2 min-w-0">
+                                                        <span class="text-[10px] font-black w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
+                                                            :class="i===0?'bg-rose-100 text-rose-700':i<3?'bg-orange-100 text-orange-700':'bg-slate-100 text-slate-500'">{{ i+1 }}</span>
+                                                        <div class="min-w-0">
+                                                            <span class="text-xs font-bold text-slate-900">{{ v.placa }}</span>
+                                                            <span v-if="v.modelo" class="text-[9px] text-slate-400 ml-1 truncate">{{ v.modelo }}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="text-right flex-shrink-0 ml-2">
+                                                        <span class="text-sm font-black" :class="i===0?'text-rose-600':i<3?'text-orange-600':'text-slate-700'">R$ {{ v.rkm.toFixed(2) }}/km</span>
+                                                        <div class="text-[9px] text-slate-400">{{ v.totalKm.toLocaleString('pt-BR') }} km · {{ v.kml>0?v.kml.toFixed(1)+' km/L':'—' }}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-1 w-full bg-slate-100 rounded-full h-1">
+                                                    <div class="h-full rounded-full bg-rose-400" :style="{width: Math.round((v.rkm/abastRkmTop10Caros[0].rkm)*100)+'%'}"></div>
+                                                </div>
+                                                <div v-if="v.motorista" class="text-[9px] text-slate-400 mt-0.5 truncate">👤 {{ v.motorista }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Top mais eficientes -->
+                                    <div>
+                                        <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-wide mb-2">🟢 Top 10 mais eficientes por km</p>
+                                        <div class="space-y-1.5">
+                                            <div v-for="(v,i) in abastRkmTop10Efic" :key="'e'+v.placa"
+                                                class="cursor-pointer rounded-lg px-3 py-2 transition-colors hover:bg-slate-50 border border-transparent"
+                                                :class="abastFiltroPlaca===v.placa ? 'border-blue-300 bg-blue-50' : ''"
+                                                @click="abastFiltroPlaca = abastFiltroPlaca===v.placa ? '' : v.placa; abastPagina=0">
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex items-center gap-2 min-w-0">
+                                                        <span class="text-[10px] font-black w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
+                                                            :class="i===0?'bg-emerald-100 text-emerald-700':i<3?'bg-teal-100 text-teal-700':'bg-slate-100 text-slate-500'">{{ i+1 }}</span>
+                                                        <div class="min-w-0">
+                                                            <span class="text-xs font-bold text-slate-900">{{ v.placa }}</span>
+                                                            <span v-if="v.modelo" class="text-[9px] text-slate-400 ml-1 truncate">{{ v.modelo }}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="text-right flex-shrink-0 ml-2">
+                                                        <span class="text-sm font-black" :class="i===0?'text-emerald-600':i<3?'text-teal-600':'text-slate-600'">R$ {{ v.rkm.toFixed(2) }}/km</span>
+                                                        <div class="text-[9px] text-slate-400">{{ v.totalKm.toLocaleString('pt-BR') }} km · {{ v.kml>0?v.kml.toFixed(1)+' km/L':'—' }}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-1 w-full bg-slate-100 rounded-full h-1">
+                                                    <div class="h-full rounded-full bg-emerald-400" :style="{width: Math.round((abastRkmTop10Efic[0].rkm/v.rkm)*100)+'%'}"></div>
+                                                </div>
+                                                <div v-if="v.motorista" class="text-[9px] text-slate-400 mt-0.5 truncate">👤 {{ v.motorista }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-else class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+                                <strong>R$/km:</strong> nenhum veículo com km rodado válido encontrado neste filtro. Verifique se a planilha contém a coluna "KM RODADOS OU HORAS TRABALHADAS" preenchida.
+                            </div>
+
+                            <!-- SEÇÃO 3: VEÍCULOS POR GASTO + COMBUSTÍVEIS + POSTOS -->
+                            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                                <!-- Top 10 Veículos por Gasto -->
+                                <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">🚛 Top 10 — Maior gasto R$</h3>
+                                        <span v-if="abastFiltroOperacao" class="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">{{ abastPorOperacao.find(o=>o.val===abastFiltroOperacao)?.label || abastFiltroOperacao }}</span>
+                                    </div>
+                                    <div class="space-y-1.5">
+                                        <div v-for="(v,i) in abastTopVeiculos" :key="v.placa"
+                                            class="cursor-pointer rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-50"
+                                            :class="abastFiltroPlaca===v.placa ? 'ring-2 ring-blue-400 bg-blue-50' : ''"
+                                            @click="abastFiltroPlaca = abastFiltroPlaca===v.placa ? '' : v.placa; abastPagina=0">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-[10px] font-black w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
+                                                        :class="i===0?'bg-rose-100 text-rose-700':i<3?'bg-orange-100 text-orange-700':'bg-slate-100 text-slate-500'">{{ i+1 }}</span>
+                                                    <div>
+                                                        <span class="text-xs font-bold text-slate-900">{{ v.placa }}</span>
+                                                        <span v-if="v.familia" class="text-[9px] text-slate-400 ml-1">{{ v.familia }}</span>
+                                                    </div>
+                                                </div>
+                                                <div class="text-right">
+                                                    <span class="text-xs font-bold" :class="i===0?'text-rose-600':i<3?'text-orange-600':'text-slate-700'">R$ {{ Math.round(v.valor).toLocaleString('pt-BR') }}</span>
+                                                    <div class="text-[9px] text-slate-400">{{ Math.round(v.litros) }}L · {{ v.kml > 0 ? v.kml.toFixed(1)+' km/L' : '—' }}</div>
+                                                </div>
+                                            </div>
+                                            <div class="mt-1 w-full bg-slate-100 rounded-full h-1">
+                                                <div class="h-full rounded-full" :class="i===0?'bg-rose-400':i<3?'bg-orange-400':'bg-slate-300'" :style="{width: Math.round((v.valor/abastTopVeiculos[0].valor)*100)+'%'}"></div>
+                                            </div>
+                                            <div v-if="v.motorista" class="text-[9px] text-slate-400 mt-0.5 truncate">👤 {{ v.motorista }}</div>
+                                        </div>
+                                    </div>
+                                    <p class="text-[10px] text-slate-400 mt-2">Clique para filtrar por placa</p>
+                                </div>
+
+                                <!-- Combustíveis -->
+                                <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">🔥 Combustíveis — Litros e R$</h3>
+                                    <div class="space-y-3">
+                                        <div v-for="c in abastPorCombustivel" :key="c.nome">
+                                            <div class="flex justify-between items-start mb-1">
+                                                <span class="text-xs font-semibold text-slate-800 truncate max-w-[55%]">{{ c.nome }}</span>
+                                                <div class="text-right flex-shrink-0">
+                                                    <div class="text-xs font-bold text-emerald-700">{{ Math.round(c.litros).toLocaleString('pt-BR') }} L</div>
+                                                    <div class="text-[10px] text-slate-400">R$ {{ c.valorFmt }} · {{ c.pct }}%</div>
+                                                </div>
+                                            </div>
+                                            <div class="w-full bg-slate-100 rounded-full h-2.5">
+                                                <div class="h-full rounded-full bg-amber-400" :style="{width: c.pct+'%'}"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Gasto por Estado -->
+                                    <div v-if="abastPorUF.length > 0" class="mt-4 pt-4 border-t border-slate-100">
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">🗺️ Gasto por estado (UF)</p>
+                                        <div class="space-y-1.5">
+                                            <div v-for="u in abastPorUF.slice(0,6)" :key="u.uf" class="flex items-center gap-2">
+                                                <span class="text-[10px] font-black text-slate-600 w-6 flex-shrink-0">{{ u.uf }}</span>
+                                                <div class="flex-1 bg-slate-100 rounded-full h-2">
+                                                    <div class="h-full rounded-full bg-indigo-400" :style="{width: u.pct+'%'}"></div>
+                                                </div>
+                                                <span class="text-[10px] text-slate-500 font-semibold flex-shrink-0 w-24 text-right">{{ u.valorFmt }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Top Postos + Centro de Custo -->
                                 <div class="lg:col-span-4 space-y-4">
                                     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                                        <div class="flex items-center justify-between mb-1">
+                                        <div class="flex items-center justify-between mb-3">
                                             <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">⛽ Top 5 Postos — Volume</h3>
-                                            <span v-if="abastFiltroOperacao" class="text-[10px] text-cyan-600 font-bold">{{ abastPorOperacao.find(o=>o.val===abastFiltroOperacao)?.label }}</span>
                                         </div>
-                                        <p class="text-[10px] text-slate-400 mb-3">Clique para ver detalhes do posto</p>
                                         <div class="space-y-2">
                                             <div v-for="p in abastTopPostos" :key="p.nome"
                                                 class="cursor-pointer rounded-lg p-2 transition-colors hover:bg-slate-50"
@@ -874,7 +973,7 @@
                                                 <div class="flex justify-between items-center mb-0.5">
                                                     <span class="text-xs font-semibold text-slate-800 truncate max-w-[58%]">{{ p.nome }}</span>
                                                     <div class="text-right flex-shrink-0">
-                                                        <span class="text-xs text-emerald-700 font-bold">{{ p.litros.toFixed(0) }}L</span>
+                                                        <span class="text-xs text-emerald-700 font-bold">{{ Math.round(p.litros).toLocaleString('pt-BR') }}L</span>
                                                         <span class="text-[10px] text-slate-400 ml-1">R$ {{ p.precMed.toFixed(2) }}/L</span>
                                                     </div>
                                                 </div>
@@ -886,31 +985,27 @@
                                                     · {{ p.qtd }} abast.
                                                 </div>
                                             </div>
-                                            <div v-if="abastTopPostos.length===0" class="py-4 text-center text-xs text-slate-400">
-                                                <p>Sem dados de postos</p>
-                                                <p v-if="abastecimentos.length>0" class="text-amber-500 mt-1 font-semibold">⚠ Re-importe o Excel para ver postos</p>
-                                            </div>
                                         </div>
                                         <!-- Card detalhe posto -->
-                                        <div v-if="abastPostoSel" class="mt-3 bg-cyan-600 text-white rounded-xl p-3">
+                                        <div v-if="abastPostoSel" class="mt-3 bg-slate-800 text-white rounded-xl p-3">
                                             <div class="flex justify-between items-start mb-2">
                                                 <div>
-                                                    <p class="text-[10px] font-bold uppercase opacity-70">Posto Selecionado</p>
+                                                    <p class="text-[9px] font-bold uppercase opacity-60">Posto selecionado</p>
                                                     <p class="text-sm font-black leading-tight">{{ abastPostoSel.nome }}</p>
                                                 </div>
-                                                <button @click="abastPostoSel=null" class="text-white/70 hover:text-white text-lg leading-none">✕</button>
+                                                <button @click="abastPostoSel=null" class="text-white/50 hover:text-white text-lg leading-none">✕</button>
                                             </div>
                                             <div class="grid grid-cols-3 gap-1.5">
-                                                <div class="bg-white/20 rounded-lg p-2 text-center">
-                                                    <p class="text-[9px] opacity-75 uppercase font-bold">Litros</p>
-                                                    <p class="text-sm font-black">{{ abastPostoSel.litros.toFixed(0) }}L</p>
+                                                <div class="bg-white/10 rounded-lg p-2 text-center">
+                                                    <p class="text-[9px] opacity-60 uppercase font-bold">Litros</p>
+                                                    <p class="text-sm font-black">{{ Math.round(abastPostoSel.litros).toLocaleString('pt-BR') }}L</p>
                                                 </div>
-                                                <div class="bg-white/20 rounded-lg p-2 text-center">
-                                                    <p class="text-[9px] opacity-75 uppercase font-bold">Preço/L</p>
+                                                <div class="bg-white/10 rounded-lg p-2 text-center">
+                                                    <p class="text-[9px] opacity-60 uppercase font-bold">Preço/L</p>
                                                     <p class="text-sm font-black">R$ {{ abastPostoSel.precMed.toFixed(2) }}</p>
                                                 </div>
-                                                <div class="bg-white/20 rounded-lg p-2 text-center">
-                                                    <p class="text-[9px] opacity-75 uppercase font-bold">Abast.</p>
+                                                <div class="bg-white/10 rounded-lg p-2 text-center">
+                                                    <p class="text-[9px] opacity-60 uppercase font-bold">Abast.</p>
                                                     <p class="text-sm font-black">{{ abastPostoSel.qtd }}</p>
                                                 </div>
                                             </div>
@@ -923,14 +1018,14 @@
                                     </div>
                                     <!-- Centro de Custo -->
                                     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">💼 Top Centros de Custo</h3>
+                                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">💼 Top centros de custo</h3>
                                         <div class="space-y-1.5">
                                             <div v-for="cc in abastTopCC" :key="cc.nome" class="flex justify-between items-center py-1 border-b border-slate-50 last:border-0">
-                                                <div>
-                                                    <span class="text-xs font-semibold text-slate-700">{{ cc.nome }}</span>
-                                                    <span class="text-[10px] text-slate-400 ml-1">{{ cc.qtd }} abast.</span>
+                                                <div class="min-w-0">
+                                                    <span class="text-xs font-semibold text-slate-700 truncate block">{{ cc.nome }}</span>
+                                                    <span class="text-[10px] text-slate-400">{{ cc.qtd }} abast.</span>
                                                 </div>
-                                                <span class="text-xs font-bold text-indigo-700">R$ {{ cc.valor.toLocaleString('pt-BR',{minimumFractionDigits:0}) }}</span>
+                                                <span class="text-xs font-bold text-indigo-700 flex-shrink-0 ml-2">R$ {{ Math.round(cc.valor).toLocaleString('pt-BR') }}</span>
                                             </div>
                                             <div v-if="abastTopCC.length===0" class="py-3 text-center text-xs text-slate-400">Sem dados</div>
                                         </div>
@@ -938,15 +1033,15 @@
                                 </div>
                             </div>
 
-                            <!-- KM/L POR MÊS + MOTORISTAS + REGISTROS -->
+                            <!-- SEÇÃO 4: KM/L MENSAL + RANK MOTORISTAS + REGISTROS -->
                             <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
                                 <!-- KM/L Mensal -->
                                 <div class="lg:col-span-3 bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">📈 KM/L por Mês</h3>
+                                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">📈 KM/L por mês</h3>
                                     <div class="space-y-2">
                                         <div v-for="m in abastKmLMensal" :key="m.mes" class="flex items-center gap-2">
-                                            <span class="text-xs text-slate-500 w-12 flex-shrink-0">{{ m.label }}</span>
-                                            <div class="flex-1 bg-slate-100 rounded-full h-5 overflow-hidden">
+                                            <span class="text-xs text-slate-400 w-12 flex-shrink-0">{{ m.label }}</span>
+                                            <div class="flex-1 bg-slate-100 rounded-full h-6 overflow-hidden">
                                                 <div class="h-full rounded-full bg-cyan-500 flex items-center px-2"
                                                     :style="{width: Math.max(8, Math.round((m.kml/abastMaxKml)*100))+'%'}">
                                                     <span class="text-white text-[10px] font-bold">{{ m.kml.toFixed(1) }}</span>
@@ -963,7 +1058,7 @@
                                 <!-- Rank Motoristas -->
                                 <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
                                     <div class="flex items-center justify-between mb-4">
-                                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">🏆 Rank Motoristas — KM/L</h3>
+                                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">🏆 Rank motoristas — KM/L</h3>
                                         <span v-if="abastFiltroOperacao" class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold">{{ abastPorOperacao.find(o=>o.val===abastFiltroOperacao)?.label }}</span>
                                     </div>
                                     <div class="space-y-2">
@@ -981,12 +1076,11 @@
                                                 <div class="w-full bg-slate-100 rounded-full h-1.5 mt-0.5">
                                                     <div class="h-full rounded-full" :class="i===0?'bg-emerald-500':i<3?'bg-blue-400':'bg-slate-300'" :style="{width: Math.round((mt.kml/abastRankMotoristas[0].kml)*100)+'%'}"></div>
                                                 </div>
-                                                <div v-if="mt.operacao" class="text-[9px] text-slate-400 truncate">{{ mt.operacao }}</div>
+                                                <div v-if="mt.operacao" class="text-[9px] text-slate-400 truncate">{{ opLabel(mt.operacao) }}</div>
                                             </div>
                                         </div>
                                         <div v-if="abastRankMotoristas.length===0" class="py-4 text-center text-xs text-slate-400">
                                             <p>Sem dados de motoristas</p>
-                                            <p v-if="abastecimentos.length>0" class="text-amber-500 mt-1 font-semibold">⚠ Re-importe o Excel para ver KM/L</p>
                                         </div>
                                     </div>
                                 </div>
@@ -994,11 +1088,11 @@
                                 <!-- Registros Detalhados -->
                                 <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
                                     <div class="flex items-center justify-between mb-4">
-                                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">📋 Registros Detalhados</h3>
+                                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">📋 Registros detalhados</h3>
                                         <div class="flex items-center gap-2">
-                                            <input v-model="abastBusca" @input="abastPagina=0" type="text" placeholder="Buscar placa/posto..."
-                                                class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 w-36 focus:outline-none focus:ring-1 focus:ring-blue-400">
-                                            <button @click="exportarAbastCSV" class="text-xs text-blue-600 font-semibold hover:underline">CSV</button>
+                                            <input v-model="abastBusca" @input="abastPagina=0" type="text" placeholder="Placa, posto ou motorista..."
+                                                class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 w-40 focus:outline-none focus:ring-1 focus:ring-blue-400">
+                                            <button @click="exportarAbastCSV" class="text-xs bg-blue-50 text-blue-700 font-bold px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors">CSV</button>
                                         </div>
                                     </div>
                                     <div class="overflow-x-auto rounded-lg border border-slate-100">
@@ -1011,10 +1105,11 @@
                                                     <th class="text-right px-3 py-2 text-[10px] font-bold text-slate-500 uppercase">L</th>
                                                     <th class="text-right px-3 py-2 text-[10px] font-bold text-slate-500 uppercase">Valor</th>
                                                     <th class="text-right px-3 py-2 text-[10px] font-bold text-slate-500 uppercase">KM/L</th>
+                                                    <th class="text-right px-3 py-2 text-[10px] font-bold text-slate-500 uppercase">R$/km</th>
                                                 </tr>
                                             </thead>
                                             <tbody class="divide-y divide-slate-50">
-                                                <tr v-for="a in abastPaginados" :key="a[1]+a[2]"
+                                                <tr v-for="a in abastPaginados" :key="a[1]+a[2]+a[3]"
                                                     class="hover:bg-slate-50 cursor-pointer transition-colors"
                                                     @click="abastFiltroPlaca=a[2];abastPagina=0">
                                                     <td class="px-3 py-2 text-slate-500 whitespace-nowrap">{{ a[0] }}</td>
@@ -1023,14 +1118,14 @@
                                                     <td class="px-3 py-2 text-right text-emerald-700 font-semibold">{{ a[3] }}</td>
                                                     <td class="px-3 py-2 text-right text-amber-700 font-semibold whitespace-nowrap">R$ {{ a[4].toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) }}</td>
                                                     <td class="px-3 py-2 text-right font-semibold" :class="a[5]>0?'text-cyan-700':'text-slate-300'">{{ a[5]>0 ? a[5].toFixed(1) : '—' }}</td>
+                                                    <td class="px-3 py-2 text-right font-semibold" :class="a[13]>0?'text-rose-600':'text-slate-300'">{{ a[13]>0 ? 'R$'+((a[4]/a[13]).toFixed(2)) : '—' }}</td>
                                                 </tr>
                                                 <tr v-if="abastPaginados.length===0">
-                                                    <td colspan="6" class="px-3 py-8 text-center text-slate-400">Nenhum registro encontrado.</td>
+                                                    <td colspan="7" class="px-3 py-8 text-center text-slate-400">Nenhum registro encontrado.</td>
                                                 </tr>
                                             </tbody>
                                         </table>
                                     </div>
-                                    <!-- Paginação -->
                                     <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
                                         <span class="text-[10px] text-slate-400">{{ abastFiltrados.length.toLocaleString('pt-BR') }} reg · pág {{ abastPagina+1 }}/{{ abastTotalPaginas }}</span>
                                         <div class="flex gap-1">
@@ -1043,7 +1138,7 @@
                                 </div>
                             </div>
 
-                        </template><!-- fim template -->
+                                                </template><!-- fim template -->
 
                         <!-- Status / Erros -->
                         <div v-if="abastImportStatus" class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-800 font-semibold">{{ abastImportStatus }}</div>
@@ -5268,7 +5363,7 @@
             var CORES_OP = ['bg-rose-500','bg-orange-500','bg-amber-500','bg-emerald-500','bg-cyan-500','bg-indigo-500','bg-purple-500','bg-pink-500'];
 
             // Índices dos campos no array compacto
-            var F = {data:0,dataISO:1,placa:2,litros:3,valor:4,kml:5,comb:6,posto:7,motorista:8,operacao:9,familia:10,cc:11,odo:12};
+            var F = {data:0,dataISO:1,placa:2,litros:3,valor:4,kml:5,comb:6,posto:7,motorista:8,operacao:9,familia:10,cc:11,odo:12,kmRodados:13,modelo:14,uf:15};
 
             // ── COMPUTED ──────────────────────────────────────────────
             var abastMeses = Vue.computed(function(){
@@ -5497,6 +5592,71 @@
                 return als.slice(0,5);
             });
 
+            // R$/km por veículo — ranking dos mais caros e mais eficientes
+            var abastRkmPorVeiculo=Vue.computed(function(){
+                var map={};
+                abastFiltrados.value.forEach(function(a){
+                    var p=a[F.placa];if(!p)return;
+                    var km=Number(a[F.kmRodados])||0;
+                    var val=Number(a[F.valor])||0;
+                    var litros=Number(a[F.litros])||0;
+                    var kml=Number(a[F.kml]);
+                    if(!map[p])map[p]={placa:p,totalValor:0,totalKm:0,totalLitros:0,kmlSum:0,kmlCnt:0,familia:a[F.familia]||'',modelo:a[F.modelo]||'',abast:0,motoristas:{}};
+                    map[p].totalValor+=val;
+                    map[p].totalLitros+=litros;
+                    if(km>0)map[p].totalKm+=km;
+                    if(kml>0&&kml<=200){map[p].kmlSum+=kml;map[p].kmlCnt++;}
+                    map[p].abast++;
+                    if(a[F.motorista])map[p].motoristas[a[F.motorista]]=(map[p].motoristas[a[F.motorista]]||0)+1;
+                });
+                return Object.values(map).filter(function(v){return v.totalKm>0&&v.totalValor>0;}).map(function(v){
+                    var rkm=v.totalKm>0?v.totalValor/v.totalKm:0;
+                    var kml=v.kmlCnt>0?v.kmlSum/v.kmlCnt:0;
+                    var mots=Object.entries(v.motoristas).sort(function(a,b){return b[1]-a[1];});
+                    return{placa:v.placa,rkm:rkm,totalValor:v.totalValor,totalKm:v.totalKm,totalLitros:v.totalLitros,kml:kml,familia:v.familia,modelo:v.modelo,abast:v.abast,motorista:mots.length?mots[0][0]:''};
+                }).sort(function(a,b){return b.rkm-a.rkm;});
+            });
+
+            // KPIs executivos de R$/km
+            var abastRkmMedia=Vue.computed(function(){
+                var v=abastRkmPorVeiculo.value;if(!v.length)return 0;
+                return v.reduce(function(s,x){return s+x.rkm;},0)/v.length;
+            });
+            var abastRkmTop10Caros=Vue.computed(function(){return abastRkmPorVeiculo.value.slice(0,10);});
+            var abastRkmTop10Efic=Vue.computed(function(){return abastRkmPorVeiculo.value.slice().sort(function(a,b){return a.rkm-b.rkm;}).slice(0,10);});
+            var abastVeiculosSemKm=Vue.computed(function(){
+                var map={};
+                abastFiltrados.value.forEach(function(a){var p=a[F.placa];if(p)map[p]=(map[p]||0)+1;});
+                var comKm=new Set(abastRkmPorVeiculo.value.map(function(v){return v.placa;}));
+                return Object.keys(map).filter(function(p){return!comKm.has(p);}).length;
+            });
+
+            // Gasto por UF (estado do posto)
+            var abastPorUF=Vue.computed(function(){
+                var map={};
+                abastFiltrados.value.forEach(function(a){
+                    var uf=a[F.uf]||'';if(!uf||uf.length!==2)return;
+                    if(!map[uf])map[uf]={uf:uf,valor:0,litros:0,abast:0};
+                    map[uf].valor+=Number(a[F.valor])||0;
+                    map[uf].litros+=Number(a[F.litros])||0;
+                    map[uf].abast++;
+                });
+                var total=Object.values(map).reduce(function(s,u){return s+u.valor;},0)||1;
+                return Object.values(map).sort(function(a,b){return b.valor-a.valor;}).map(function(u){return Object.assign(u,{pct:Math.round(u.valor/total*100),valorFmt:'R$ '+Math.round(u.valor).toLocaleString('pt-BR')});});
+            });
+
+            // Alertas enriquecidos com R$/km
+            var abastAlertasRkm=Vue.computed(function(){
+                var als=[];
+                var media=abastRkmMedia.value;
+                if(media>0){
+                    abastRkmPorVeiculo.value.filter(function(v){return v.rkm>media*1.8;}).slice(0,3).forEach(function(v){
+                        als.push({tipo:'danger',msg:v.placa+' custa R$ '+v.rkm.toFixed(2)+'/km — '+Math.round((v.rkm/media-1)*100)+'% acima da média'});
+                    });
+                }
+                return als;
+            });
+
             // ── FUNÇÕES ──────────────────────────────────────────────
             var parseDataTicket=function(val){
                 if(val===null||val===undefined||val==='')return{fmt:'',iso:''};
@@ -5547,6 +5707,10 @@
                     if(m.cc===undefined&&n==='informacaoadidional1')m.cc=i;
                     if(m.cc===undefined&&n.indexOf('adidional1')>-1)m.cc=i;
                     if(m.odo===undefined&&(n.indexOf('hodometro')>-1||n.indexOf('horimetro')>-1))m.odo=i;
+                    if(m.kmRodados===undefined&&(n==='kmrodadosouhorastrabalhadas'||n.indexOf('kmrodados')>-1||n.indexOf('horastrab')>-1))m.kmRodados=i;
+                    if(m.modelo===undefined&&n==='modeloveiculo')m.modelo=i;
+                    if(m.modelo===undefined&&n.indexOf('modelov')>-1)m.modelo=i;
+                    if(m.uf===undefined&&n==='uf')m.uf=i;
                 });
                 return m;
             };
@@ -5569,6 +5733,8 @@
                             kmlRaw=parseFloat(kmlStr)||0;
                             if(isNaN(kmlRaw)||kmlRaw<=0||kmlRaw>200)kmlRaw=0;
                         }
+                        var kmRodadosRaw=0;
+                        if(cols.kmRodados!==undefined){kmRodadosRaw=parseFloat(String(vals[cols.kmRodados]||'0').replace(',','.'))||0;if(kmRodadosRaw<=0||kmRodadosRaw>999999)kmRodadosRaw=0;}
                         return[
                             dt.fmt,dt.iso,placa,litros,valor,kmlRaw,
                             cols.comb!==undefined?String(vals[cols.comb]||''):'',
@@ -5578,6 +5744,9 @@
                             cols.familia!==undefined?String(vals[cols.familia]||'').trim():'',
                             cols.cc!==undefined?String(vals[cols.cc]||'').trim():'',
                             cols.odo!==undefined?String(vals[cols.odo]||''):'',
+                            kmRodadosRaw,
+                            cols.modelo!==undefined?String(vals[cols.modelo]||'').trim():'',
+                            cols.uf!==undefined?String(vals[cols.uf]||'').trim().toUpperCase():'',
                         ];
                     };
                     if(ext==='csv'){
@@ -5614,7 +5783,7 @@
                         // Salvar no Supabase se disponível
                         if(supabaseClient&&rows.length>0){
                             try{
-                                var batch=rows.map(function(r){return{placa:r[2],data_abastecimento:r[1]||null,litros:r[3]||null,valor:r[4]||null,kml:r[5]||null,odometro:parseFloat(r[12])||null,combustivel:r[6]||null,posto:r[7]||null,motorista:r[8]||null,operacao:r[9]||null,tipo_frota:r[10]||null,centro_custo:r[11]||null};});
+                                var batch=rows.map(function(r){return{placa:r[2],data_abastecimento:r[1]||null,litros:r[3]||null,valor:r[4]||null,kml:r[5]||null,odometro:parseFloat(r[12])||null,combustivel:r[6]||null,posto:r[7]||null,motorista:r[8]||null,operacao:r[9]||null,tipo_frota:r[10]||null,centro_custo:r[11]||null,km_rodados:r[13]||null,modelo:r[14]||null,uf:r[15]||null};});
                                 for(var bi=0;bi<batch.length;bi+=500){
                                     await supabaseClient.from('abastecimentos').upsert(batch.slice(bi,bi+500),{onConflict:'placa,data_abastecimento,litros'});
                                 }
@@ -5653,7 +5822,7 @@
                     var from=0;
                     while(true){
                         var res=await supabaseClient.from('abastecimentos')
-                            .select('placa,data_abastecimento,litros,valor,kml,combustivel,posto,motorista,operacao,tipo_frota,centro_custo,odometro')
+                            .select('placa,data_abastecimento,litros,valor,kml,combustivel,posto,motorista,operacao,tipo_frota,centro_custo,odometro,km_rodados,modelo,uf')
                             .order('data_abastecimento',{ascending:false})
                             .range(from,from+pageSize-1);
                         if(!res.data||res.data.length===0)break;
@@ -5667,9 +5836,12 @@
                             var dtF=dt?dt.split('-').reverse().join('/'):'';
                             var kmlVal=Number(r.kml)||0;
                             if(kmlVal<=0||kmlVal>200)kmlVal=0;
+                            var kmRod=Number(r.km_rodados)||0;
+                            if(kmRod<=0||kmRod>999999)kmRod=0;
                             return[dtF,dt,r.placa||'',Number(r.litros)||0,Number(r.valor)||0,kmlVal,
                                 r.combustivel||'',r.posto||'',r.motorista||'',r.operacao||'',
-                                r.tipo_frota||'',r.centro_custo||'',String(r.odometro||'')];
+                                r.tipo_frota||'',r.centro_custo||'',String(r.odometro||''),
+                                kmRod,r.modelo||'',r.uf||''];
                         });
                         console.log('[ABAST] Carregado do Supabase: '+allRows.length+' registros');
                     }
@@ -5716,9 +5888,9 @@
                 abastTotalPaginas,abastPaginados,abastTotalLitros,abastTotalValor,abastPrecoMedio,
                 abastKmLMedioNum,abastTotalPostos,abastOperacoesAtivas,
                 abastTopVeiculos,abastPorOperacao,abastMaxOp,abastPorCombustivel,
-                abastTopPostos,abastMelhorPreco,abastMedioPreco,abastTopCC,
+                abastTopPostos,abastMelhorPreco,abastMedioPreco,abastTopCC,opLabel,
                 abastGastoMensal,abastMaxMensal,abastKmLMensal,abastMaxKml,
-                abastAlertas,abastRankMotoristas,
+                abastAlertas,abastRankMotoristas,abastRkmPorVeiculo,abastRkmMedia,abastRkmTop10Caros,abastRkmTop10Efic,abastVeiculosSemKm,abastPorUF,abastAlertasRkm,
                 importarTicket,exportarAbastCSV
             };
         }
